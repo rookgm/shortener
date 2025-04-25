@@ -11,18 +11,11 @@ import (
 var storage = map[string]string{}
 
 func GetHandler(w http.ResponseWriter, r *http.Request) {
-	// этот обработчик принимает только запросы, отправленные методом GET
+
 	if r.Method != http.MethodGet {
 		http.Error(w, "bad request", http.StatusBadRequest)
 		return
 	}
-
-	if val := r.Header.Get("Content-Type"); strings.Compare(val, "text/plain") != 0 {
-		http.Error(w, "bad request", http.StatusBadRequest)
-		return
-	}
-
-	/*parse request*/
 
 	// get url alias from path
 	alias := strings.TrimLeft(r.URL.Path, "/")
@@ -32,9 +25,7 @@ func GetHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	/*write response*/
-	w.WriteHeader(http.StatusTemporaryRedirect)
-	io.WriteString(w, "Location: "+url)
+	http.Redirect(w, r, url, http.StatusTemporaryRedirect)
 }
 
 func PostHandler(w http.ResponseWriter, r *http.Request) {
@@ -43,13 +34,7 @@ func PostHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "bad request", http.StatusBadRequest)
 		return
 	}
-	// TODO uncomment
-	if val := r.Header.Get("Content-Type"); strings.Compare(val, "text/plain") != 0 {
-		http.Error(w, "bad request", http.StatusBadRequest)
-		return
-	}
 
-	/*parse request*/
 	// get url
 	url, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -61,7 +46,6 @@ func PostHandler(w http.ResponseWriter, r *http.Request) {
 	// put it storage
 	storage[alias] = string(url)
 
-	/*write response*/
 	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusCreated)
 	io.WriteString(w, "http://localhost:8080/"+alias)
