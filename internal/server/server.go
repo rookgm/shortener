@@ -35,7 +35,7 @@ func PostHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "bad request", http.StatusBadRequest)
 		return
 	}
-
+	defer r.Body.Close()
 	// get url
 	url, err := io.ReadAll(r.Body)
 	if err != nil || len(url) == 0 {
