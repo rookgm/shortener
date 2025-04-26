@@ -1,4 +1,4 @@
-package app
+package server
 
 import (
 	"io"
@@ -22,6 +22,7 @@ func GetHandler(w http.ResponseWriter, r *http.Request) {
 
 	url, ok := storage[alias]
 	if !ok {
+		http.Error(w, "bad request", http.StatusBadRequest)
 		return
 	}
 
@@ -37,7 +38,8 @@ func PostHandler(w http.ResponseWriter, r *http.Request) {
 
 	// get url
 	url, err := io.ReadAll(r.Body)
-	if err != nil {
+	if err != nil || len(url) == 0 {
+		http.Error(w, "bad request", http.StatusBadRequest)
 		return
 	}
 
@@ -49,6 +51,7 @@ func PostHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusCreated)
 	io.WriteString(w, "http://localhost:8080/"+alias)
+
 }
 
 func Run() error {
