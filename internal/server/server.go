@@ -1,12 +1,14 @@
 package server
 
 import (
-	"fmt"
+	"errors"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/rookgm/shortener/config"
 	"github.com/rookgm/shortener/internal/random"
 	"io"
 	"net/http"
+	"net/url"
 )
 
 var storage = map[string]string{}
@@ -25,11 +27,11 @@ func GetHandler() http.HandlerFunc {
 	}
 }
 
-func PostHandler() http.HandlerFunc {
+func PostHandler(baseURL string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// get url
-		url, err := io.ReadAll(r.Body)
-		if err != nil || len(url) == 0 {
+		body, err := io.ReadAll(r.Body)
+		if err != nil || len(body) == 0 {
 			http.Error(w, "bad request", http.StatusBadRequest)
 			return
 		}
@@ -38,22 +40,23 @@ func PostHandler() http.HandlerFunc {
 		// generating url alias
 		alias := random.RandString(6)
 		// put it storage
-		storage[alias] = string(url)
+		storage[alias] = string(body)
 
 		w.Header().Set("Content-Type", "text/plain")
 		w.WriteHeader(http.StatusCreated)
-		io.WriteString(w, "http://localhost:8080/"+alias)
+		rurl, err := url.JoinPath(baseURL, alias)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+		}
+		io.WriteString(w, rurl)
 	}
 }
 
-func DeleteHandler() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		//alias := strings.TrimLeft(r.URL.Path, "/")
-		fmt.Println("test")
+func Run(config *config.Config) error {
+	if config == nil {
+		return errors.New("config is nil")
 	}
-}
 
-func Run() error {
 	router := chi.NewRouter()
 
 	router.Use(middleware.RealIP)
@@ -61,9 +64,9 @@ func Run() error {
 	router.Use(middleware.Recoverer)
 
 	router.Route("/", func(r chi.Router) {
-		router.Post("/", PostHandler())
+		router.Post("/", PostHandler(config.BaseURL))
 		router.Get("/{id}", GetHandler())
 	})
 
-	return http.ListenAndServe(`:8080`, router)
+	return http.ListenAndServe(config.ServerAddr, router)
 }
