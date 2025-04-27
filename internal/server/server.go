@@ -1,65 +1,69 @@
 package server
 
 import (
+	"fmt"
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
+	"github.com/rookgm/shortener/internal/random"
 	"io"
 	"net/http"
-	"strings"
-
-	"github.com/rookgm/shortener/internal/random"
 )
 
 var storage = map[string]string{}
 
-func GetHandler(w http.ResponseWriter, r *http.Request) {
+func GetHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// get url alias from path
+		alias := chi.URLParam(r, "id")
 
-	if r.Method != http.MethodGet {
-		http.Error(w, "bad request", http.StatusBadRequest)
-		return
+		url, ok := storage[alias]
+		if !ok {
+			http.Error(w, "bad request", http.StatusBadRequest)
+			return
+		}
+		http.Redirect(w, r, url, http.StatusTemporaryRedirect)
 	}
-
-	// get url alias from path
-	alias := strings.TrimLeft(r.URL.Path, "/")
-
-	url, ok := storage[alias]
-	if !ok {
-		http.Error(w, "bad request", http.StatusBadRequest)
-		return
-	}
-
-	http.Redirect(w, r, url, http.StatusTemporaryRedirect)
 }
 
-func PostHandler(w http.ResponseWriter, r *http.Request) {
+func PostHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// get url
+		url, err := io.ReadAll(r.Body)
+		if err != nil || len(url) == 0 {
+			http.Error(w, "bad request", http.StatusBadRequest)
+			return
+		}
+		defer r.Body.Close()
 
-	if r.Method != http.MethodPost {
-		http.Error(w, "bad request", http.StatusBadRequest)
-		return
+		// generating url alias
+		alias := random.RandString(6)
+		// put it storage
+		storage[alias] = string(url)
+
+		w.Header().Set("Content-Type", "text/plain")
+		w.WriteHeader(http.StatusCreated)
+		io.WriteString(w, "http://localhost:8080/"+alias)
 	}
-	defer r.Body.Close()
-	// get url
-	url, err := io.ReadAll(r.Body)
-	if err != nil || len(url) == 0 {
-		http.Error(w, "bad request", http.StatusBadRequest)
-		return
+}
+
+func DeleteHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		//alias := strings.TrimLeft(r.URL.Path, "/")
+		fmt.Println("test")
 	}
-
-	// generating url alias
-	alias := random.RandString(6)
-	// put it storage
-	storage[alias] = string(url)
-
-	w.Header().Set("Content-Type", "text/plain")
-	w.WriteHeader(http.StatusCreated)
-	io.WriteString(w, "http://localhost:8080/"+alias)
-
 }
 
 func Run() error {
+	router := chi.NewRouter()
 
-	mux := http.NewServeMux()
+	router.Use(middleware.RealIP)
+	router.Use(middleware.Logger)
+	router.Use(middleware.Recoverer)
 
-	mux.HandleFunc("/", PostHandler)
-	mux.HandleFunc("/{id}", GetHandler)
+	router.Route("/", func(r chi.Router) {
+		router.Post("/", PostHandler())
+		router.Get("/{id}", GetHandler())
+	})
 
-	return http.ListenAndServe(`:8080`, mux)
+	return http.ListenAndServe(`:8080`, router)
 }

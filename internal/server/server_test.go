@@ -1,6 +1,7 @@
 package server
 
 import (
+	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"io"
@@ -11,6 +12,11 @@ import (
 )
 
 func TestGetHandler(t *testing.T) {
+
+	// initialize map
+	id := "EwHXdJfB"
+	storage[id] = "https://practicum.yandex.ru/"
+
 	type want struct {
 		code        int
 		response    string
@@ -24,7 +30,7 @@ func TestGetHandler(t *testing.T) {
 	}{
 		{
 			name:   "positive test",
-			target: "/EwHXdJfB",
+			target: "/" + id,
 			want: want{
 				code:     http.StatusTemporaryRedirect,
 				response: "https://practicum.yandex.ru/",
@@ -34,24 +40,25 @@ func TestGetHandler(t *testing.T) {
 			name:   "outside alias",
 			target: "/",
 			want: want{
-				code:     http.StatusBadRequest,
+				code:     http.StatusNotFound,
 				response: "",
 			},
 		},
 	}
 
-	// initialize map
-	storage["EwHXdJfB"] = "https://practicum.yandex.ru/"
+	router := chi.NewRouter()
+	router.Get("/{id}", GetHandler())
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			request := httptest.NewRequest(http.MethodGet, test.target, nil)
 			w := httptest.NewRecorder()
 
-			GetHandler(w, request)
+			router.ServeHTTP(w, request)
+
 			res := w.Result()
-			// TODO
 			defer res.Body.Close()
+
 			assert.Equal(t, test.want.code, res.StatusCode)
 			assert.Equal(t, test.want.response, res.Header.Get("Location"))
 		})
@@ -101,13 +108,15 @@ func TestPostHandler(t *testing.T) {
 		},
 	}
 
+	handler := PostHandler()
+
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			request := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(test.body))
 			request.Header.Set("Content-Type", test.header)
 			w := httptest.NewRecorder()
 
-			PostHandler(w, request)
+			handler(w, request)
 
 			res := w.Result()
 			assert.Equal(t, test.want.code, res.StatusCode)
