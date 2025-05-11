@@ -3,8 +3,8 @@ package server
 import (
 	"errors"
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
 	"github.com/rookgm/shortener/config"
+	"github.com/rookgm/shortener/internal/logger"
 	"github.com/rookgm/shortener/internal/random"
 	"io"
 	"net/http"
@@ -58,10 +58,7 @@ func Run(config *config.Config) error {
 	}
 
 	router := chi.NewRouter()
-
-	router.Use(middleware.RealIP)
-	router.Use(middleware.Logger)
-	router.Use(middleware.Recoverer)
+	router.Use(logger.Middleware)
 
 	router.Route("/", func(r chi.Router) {
 		router.Post("/", PostHandler(config.BaseURL))

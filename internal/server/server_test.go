@@ -29,7 +29,7 @@ func TestGetHandler(t *testing.T) {
 		want   want
 	}{
 		{
-			name:   "positive test",
+			name:   "positive_test",
 			target: "/" + id,
 			want: want{
 				code:     http.StatusTemporaryRedirect,
@@ -37,7 +37,7 @@ func TestGetHandler(t *testing.T) {
 			},
 		},
 		{
-			name:   "outside alias",
+			name:   "outside_alias",
 			target: "/",
 			want: want{
 				code:     http.StatusNotFound,
@@ -79,7 +79,7 @@ func TestPostHandler(t *testing.T) {
 		want   want
 	}{
 		{
-			name:   "positive test",
+			name:   "positive_test",
 			header: "text/plain",
 			body:   "http://practicum.yandex.ru/",
 			want: want{
@@ -89,17 +89,16 @@ func TestPostHandler(t *testing.T) {
 			},
 		},
 		{
-			name:   "bad Content-Type",
+			name:   "bad_Content-Type",
 			header: "multipart/form-data",
 			body:   "http://practicum.yandex.ru/",
 			want: want{
-				code:        http.StatusCreated,
-				response:    `http://localhost:8080/{id}`,
+				code:        http.StatusBadRequest,
 				contentType: "text/plain",
 			},
 		},
 		{
-			name: "empty body",
+			name: "empty_body",
 			body: "",
 			want: want{
 				code:        http.StatusBadRequest,
