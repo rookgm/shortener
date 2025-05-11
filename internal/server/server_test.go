@@ -89,11 +89,12 @@ func TestPostHandler(t *testing.T) {
 			},
 		},
 		{
-			name:   "bad_Content-Type",
+			name:   "other_Content-Type",
 			header: "multipart/form-data",
 			body:   "http://practicum.yandex.ru/",
 			want: want{
-				code:        http.StatusBadRequest,
+				code:        http.StatusCreated,
+				response:    `http://localhost:8080/{id}`,
 				contentType: "text/plain",
 			},
 		},
