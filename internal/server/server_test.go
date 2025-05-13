@@ -1,6 +1,8 @@
 package server
 
 import (
+	"bytes"
+	"encoding/json"
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -123,8 +125,75 @@ func TestPostHandler(t *testing.T) {
 			defer res.Body.Close()
 			resBody, err := io.ReadAll(res.Body)
 			require.NoError(t, err)
-			assert.NotEmpty(t, resBody, "response body is empty")
+			assert.NotEmpty(t, resBody, "body body is empty")
 			assert.True(t, strings.HasPrefix(res.Header.Get("Content-Type"), string(test.want.contentType)), "Content-Type is not valid")
+		})
+	}
+}
+
+func TestApiShortenHandler(t *testing.T) {
+
+	type want struct {
+		code        int
+		contentType string
+		body        APIShortenResp
+	}
+
+	tests := []struct {
+		name        string
+		contentType string
+		body        APIShortenReq
+		want        want
+	}{
+		{
+			name:        "positive_test",
+			contentType: "application/json",
+			body:        APIShortenReq{URL: "https://practicum.yandex.ru/"},
+			want: want{
+				code:        http.StatusCreated,
+				contentType: "application/json",
+				body:        APIShortenResp{Result: "http://localhost:8080/"},
+			},
+		},
+		{
+			name:        "unsupported_media_type",
+			contentType: "text/plain",
+			want: want{
+				code:        http.StatusUnsupportedMediaType,
+				contentType: "text/plain",
+			},
+		},
+	}
+
+	handler := APIShortenHandler("http://localhost:8080")
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			body, _ := json.Marshal(test.body)
+			request := httptest.NewRequest(http.MethodPost, "/api/shorten", bytes.NewBuffer(body))
+			request.Header.Set("Content-Type", test.contentType)
+			w := httptest.NewRecorder()
+
+			handler(w, request)
+
+			res := w.Result()
+			assert.Equal(t, test.want.code, res.StatusCode)
+
+			defer res.Body.Close()
+
+			resBody, err := io.ReadAll(res.Body)
+
+			require.NoError(t, err)
+
+			assert.NotEmpty(t, resBody, "body body is empty")
+
+			assert.True(t, strings.HasPrefix(res.Header.Get("Content-Type"), string(test.want.contentType)), "Content-Type is not valid")
+
+			var resp APIShortenResp
+
+			json.Unmarshal(resBody, &resp)
+
+			assert.True(t, strings.HasPrefix(resp.Result, test.want.body.Result), "body result is not equal")
 		})
 	}
 }
