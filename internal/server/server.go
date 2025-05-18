@@ -51,7 +51,7 @@ func PostHandler(baseURL string) http.HandlerFunc {
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 		}
-		io.WriteString(w, rurl)
+		w.Write([]byte(rurl))
 	}
 }
 
@@ -67,7 +67,7 @@ func APIShortenHandler(baseURL string) http.HandlerFunc {
 		logger.Log.Debug("check Content-Type")
 		if ct := r.Header.Get("Content-Type"); ct != "" {
 			st := strings.ToLower(strings.TrimSpace(strings.Split(ct, ";")[0]))
-			if strings.Compare(st, "application/json") != 0 {
+			if !strings.Contains(st, "application/json") {
 				msg := "Content-Type is not application/json"
 				logger.Log.Debug(msg, zap.String("is", ct))
 				http.Error(w, msg, http.StatusUnsupportedMediaType)
@@ -116,6 +116,7 @@ func Run(config *config.Config) error {
 
 	router := chi.NewRouter()
 	router.Use(logger.Middleware)
+	router.Use(GzipMiddleware)
 
 	router.Route("/", func(r chi.Router) {
 		router.Post("/", PostHandler(config.BaseURL))
