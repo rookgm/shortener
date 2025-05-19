@@ -7,6 +7,7 @@ import (
 	"github.com/rookgm/shortener/config"
 	"github.com/rookgm/shortener/internal/logger"
 	"github.com/rookgm/shortener/internal/random"
+	"github.com/rookgm/shortener/internal/storage"
 	"go.uber.org/zap"
 	"io"
 	"net/http"
@@ -14,15 +15,15 @@ import (
 	"strings"
 )
 
-var storage = map[string]string{}
+var store *storage.Storage
 
 func GetHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// get url alias from path
 		alias := chi.URLParam(r, "id")
 
-		url, ok := storage[alias]
-		if !ok {
+		url, err := store.Get(alias)
+		if err != nil {
 			http.Error(w, "bad request", http.StatusBadRequest)
 			return
 		}
@@ -43,7 +44,9 @@ func PostHandler(baseURL string) http.HandlerFunc {
 		// generating url alias
 		alias := random.RandString(6)
 		// put it storage
-		storage[alias] = string(body)
+		if err := store.Set(alias, string(body)); err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+		}
 
 		w.Header().Set("Content-Type", "text/plain")
 		w.WriteHeader(http.StatusCreated)
@@ -88,7 +91,9 @@ func APIShortenHandler(baseURL string) http.HandlerFunc {
 		// generating url alias
 		alias := random.RandString(6)
 		// put it storage
-		storage[alias] = string(req.URL)
+		if err := store.Set(alias, req.URL); err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+		}
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
@@ -112,6 +117,15 @@ func APIShortenHandler(baseURL string) http.HandlerFunc {
 func Run(config *config.Config) error {
 	if config == nil {
 		return errors.New("config is nil")
+	}
+
+	store = storage.NewStorage(config.StoragePath)
+	if store == nil {
+		return errors.New("can not create storage")
+	}
+
+	if err := store.LoadFromFile(); err != nil {
+		return err
 	}
 
 	router := chi.NewRouter()

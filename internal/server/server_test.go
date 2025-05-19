@@ -4,11 +4,13 @@ import (
 	"bytes"
 	"encoding/json"
 	"github.com/go-chi/chi/v5"
+	"github.com/rookgm/shortener/internal/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 )
@@ -16,8 +18,13 @@ import (
 func TestGetHandler(t *testing.T) {
 
 	// initialize map
+	fileName := "storage_test.json"
+	defer os.Remove(fileName)
+
+	store = storage.NewStorage(fileName)
+
 	id := "EwHXdJfB"
-	storage[id] = "https://practicum.yandex.ru/"
+	store.Set(id, "https://practicum.yandex.ru/")
 
 	type want struct {
 		code        int
