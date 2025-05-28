@@ -10,6 +10,7 @@ type Config struct {
 	BaseURL     string
 	LogLevel    string
 	StoragePath string
+	DataBaseDSN string
 }
 
 func Init() (*Config, error) {
@@ -19,7 +20,8 @@ func Init() (*Config, error) {
 	flag.StringVar(&cfg.ServerAddr, "a", ":8080", "server address")
 	flag.StringVar(&cfg.BaseURL, "b", "http://localhost:8080/", "base url")
 	flag.StringVar(&cfg.LogLevel, "l", "info", "log level")
-	flag.StringVar(&cfg.StoragePath, "f", "storage.json", "storage path")
+	flag.StringVar(&cfg.StoragePath, "f", "/tmp/short-url-db.json", "storage path")
+	flag.StringVar(&cfg.DataBaseDSN, "d", "postgres://postgres:postgres@postgres:5432/praktikum?sslmode=disable", "database address")
 
 	flag.Parse()
 
@@ -49,6 +51,10 @@ func Init() (*Config, error) {
 
 	if cfg.StoragePath == "" {
 		cfg.StoragePath = "storage.json"
+	}
+
+	if dataBaseDSNEnv := os.Getenv("DATABASE_DSN"); dataBaseDSNEnv != "" {
+		cfg.DataBaseDSN = dataBaseDSNEnv
 	}
 
 	return &cfg, nil

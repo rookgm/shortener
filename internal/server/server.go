@@ -5,6 +5,8 @@ import (
 	"errors"
 	"github.com/go-chi/chi/v5"
 	"github.com/rookgm/shortener/config"
+	"github.com/rookgm/shortener/internal/db"
+	"github.com/rookgm/shortener/internal/handlers"
 	"github.com/rookgm/shortener/internal/logger"
 	"github.com/rookgm/shortener/internal/random"
 	"github.com/rookgm/shortener/internal/storage"
@@ -119,6 +121,12 @@ func Run(config *config.Config) error {
 		return errors.New("config is nil")
 	}
 
+	sdb, err := db.Open(config.DataBaseDSN)
+	if err != nil {
+		return errors.New("can open db")
+	}
+	defer sdb.Close()
+
 	store = storage.NewStorage(config.StoragePath)
 	if store == nil {
 		return errors.New("can not create storage")
@@ -136,7 +144,7 @@ func Run(config *config.Config) error {
 		router.Post("/", PostHandler(config.BaseURL))
 		router.Get("/{id}", GetHandler())
 		router.Post("/api/shorten", APIShortenHandler(config.BaseURL))
-
+		router.Get("/ping", handlers.PingHandler(sdb))
 	})
 
 	return http.ListenAndServe(config.ServerAddr, router)
