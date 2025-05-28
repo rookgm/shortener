@@ -1,12 +1,16 @@
 package server
 
 import (
+	"bytes"
+	"encoding/json"
 	"github.com/go-chi/chi/v5"
+	"github.com/rookgm/shortener/internal/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 )
@@ -14,8 +18,13 @@ import (
 func TestGetHandler(t *testing.T) {
 
 	// initialize map
+	fileName := "storage_test.json"
+	defer os.Remove(fileName)
+
+	store = storage.NewStorage(fileName)
+
 	id := "EwHXdJfB"
-	storage[id] = "https://practicum.yandex.ru/"
+	store.Set(id, "https://practicum.yandex.ru/")
 
 	type want struct {
 		code        int
@@ -29,7 +38,7 @@ func TestGetHandler(t *testing.T) {
 		want   want
 	}{
 		{
-			name:   "positive test",
+			name:   "positive_test",
 			target: "/" + id,
 			want: want{
 				code:     http.StatusTemporaryRedirect,
@@ -37,7 +46,7 @@ func TestGetHandler(t *testing.T) {
 			},
 		},
 		{
-			name:   "outside alias",
+			name:   "outside_alias",
 			target: "/",
 			want: want{
 				code:     http.StatusNotFound,
@@ -79,7 +88,7 @@ func TestPostHandler(t *testing.T) {
 		want   want
 	}{
 		{
-			name:   "positive test",
+			name:   "positive_test",
 			header: "text/plain",
 			body:   "http://practicum.yandex.ru/",
 			want: want{
@@ -89,7 +98,7 @@ func TestPostHandler(t *testing.T) {
 			},
 		},
 		{
-			name:   "bad Content-Type",
+			name:   "other_Content-Type",
 			header: "multipart/form-data",
 			body:   "http://practicum.yandex.ru/",
 			want: want{
@@ -99,7 +108,7 @@ func TestPostHandler(t *testing.T) {
 			},
 		},
 		{
-			name: "empty body",
+			name: "empty_body",
 			body: "",
 			want: want{
 				code:        http.StatusBadRequest,
@@ -123,8 +132,75 @@ func TestPostHandler(t *testing.T) {
 			defer res.Body.Close()
 			resBody, err := io.ReadAll(res.Body)
 			require.NoError(t, err)
-			assert.NotEmpty(t, resBody, "response body is empty")
+			assert.NotEmpty(t, resBody, "body body is empty")
 			assert.True(t, strings.HasPrefix(res.Header.Get("Content-Type"), string(test.want.contentType)), "Content-Type is not valid")
+		})
+	}
+}
+
+func TestApiShortenHandler(t *testing.T) {
+
+	type want struct {
+		code        int
+		contentType string
+		body        APIShortenResp
+	}
+
+	tests := []struct {
+		name        string
+		contentType string
+		body        APIShortenReq
+		want        want
+	}{
+		{
+			name:        "positive_test",
+			contentType: "application/json",
+			body:        APIShortenReq{URL: "https://practicum.yandex.ru/"},
+			want: want{
+				code:        http.StatusCreated,
+				contentType: "application/json",
+				body:        APIShortenResp{Result: "http://localhost:8080/"},
+			},
+		},
+		{
+			name:        "unsupported_media_type",
+			contentType: "text/plain",
+			want: want{
+				code:        http.StatusUnsupportedMediaType,
+				contentType: "text/plain",
+			},
+		},
+	}
+
+	handler := APIShortenHandler("http://localhost:8080")
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			body, _ := json.Marshal(test.body)
+			request := httptest.NewRequest(http.MethodPost, "/api/shorten", bytes.NewBuffer(body))
+			request.Header.Set("Content-Type", test.contentType)
+			w := httptest.NewRecorder()
+
+			handler(w, request)
+
+			res := w.Result()
+			assert.Equal(t, test.want.code, res.StatusCode)
+
+			defer res.Body.Close()
+
+			resBody, err := io.ReadAll(res.Body)
+
+			require.NoError(t, err)
+
+			assert.NotEmpty(t, resBody, "body body is empty")
+
+			assert.True(t, strings.HasPrefix(res.Header.Get("Content-Type"), string(test.want.contentType)), "Content-Type is not valid")
+
+			var resp APIShortenResp
+
+			json.Unmarshal(resBody, &resp)
+
+			assert.True(t, strings.HasPrefix(resp.Result, test.want.body.Result), "body result is not equal")
 		})
 	}
 }
