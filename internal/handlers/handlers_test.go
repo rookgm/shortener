@@ -1,9 +1,10 @@
-package server
+package handlers
 
 import (
 	"bytes"
 	"encoding/json"
 	"github.com/go-chi/chi/v5"
+	"github.com/rookgm/shortener/internal/models"
 	"github.com/rookgm/shortener/internal/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -17,14 +18,18 @@ import (
 
 func TestGetHandler(t *testing.T) {
 
-	// initialize map
 	fileName := "storage_test.json"
 	defer os.Remove(fileName)
 
-	store = storage.NewStorage(fileName)
+	st := storage.NewFileStorage(fileName)
 
-	id := "EwHXdJfB"
-	store.Set(id, "https://practicum.yandex.ru/")
+	url := models.ShrURL{
+		Alias: "EwHXdJfB",
+		URL:   "https://practicum.yandex.ru/",
+	}
+
+	err := st.StoreURL(url)
+	require.NoError(t, err)
 
 	type want struct {
 		code        int
@@ -39,7 +44,7 @@ func TestGetHandler(t *testing.T) {
 	}{
 		{
 			name:   "positive_test",
-			target: "/" + id,
+			target: "/" + url.Alias,
 			want: want{
 				code:     http.StatusTemporaryRedirect,
 				response: "https://practicum.yandex.ru/",
@@ -56,7 +61,7 @@ func TestGetHandler(t *testing.T) {
 	}
 
 	router := chi.NewRouter()
-	router.Get("/{id}", GetHandler())
+	router.Get("/{id}", GetHandler(st))
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -75,6 +80,9 @@ func TestGetHandler(t *testing.T) {
 }
 
 func TestPostHandler(t *testing.T) {
+
+	st := storage.NewMemStorage()
+
 	type want struct {
 		code        int
 		response    string
@@ -117,7 +125,7 @@ func TestPostHandler(t *testing.T) {
 		},
 	}
 
-	handler := PostHandler("http://localhost:8080")
+	handler := PostHandler(st, "http://localhost:8080")
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -139,6 +147,8 @@ func TestPostHandler(t *testing.T) {
 }
 
 func TestApiShortenHandler(t *testing.T) {
+
+	st := storage.NewMemStorage()
 
 	type want struct {
 		code        int
@@ -172,7 +182,7 @@ func TestApiShortenHandler(t *testing.T) {
 		},
 	}
 
-	handler := APIShortenHandler("http://localhost:8080")
+	handler := APIShortenHandler(st, "http://localhost:8080")
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {

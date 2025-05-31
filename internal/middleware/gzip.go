@@ -1,12 +1,35 @@
-package server
+package middleware
 
 import (
 	"compress/gzip"
 	"io"
 	"net/http"
 	"strings"
+	"sync"
 )
 
+// valid content types
+var validContentTypes = []string{"application/json", "text/html"}
+
+type ContentTypeChecker struct {
+	m    map[string]struct{}
+	once sync.Once
+}
+
+// IsValid is checks the acceptable content type
+func (ch *ContentTypeChecker) IsValid(s string) bool {
+	ch.once.Do(func() {
+		ch.m = make(map[string]struct{})
+		for _, v := range validContentTypes {
+			ch.m[v] = struct{}{}
+		}
+	})
+
+	_, ok := ch.m[s]
+	return ok
+}
+
+// content type checker
 var ctChecker ContentTypeChecker
 
 type compressWriter struct {
