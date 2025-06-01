@@ -20,7 +20,7 @@ func GetHandler(store storage.URLStorage) http.HandlerFunc {
 		// get url alias from path
 		alias := chi.URLParam(r, "id")
 
-		rurl, err := store.GetURL(alias)
+		rurl, err := store.GetURLCtx(r.Context(), alias)
 		if err != nil {
 			http.Error(w, "bad request", http.StatusBadRequest)
 			return
@@ -45,7 +45,7 @@ func PostHandler(store storage.URLStorage, baseURL string) http.HandlerFunc {
 		}
 
 		// put it storage
-		if err := store.StoreURL(iurl); err != nil {
+		if err := store.StoreURLCtx(r.Context(), iurl); err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 		}
 
@@ -95,7 +95,7 @@ func APIShortenHandler(store storage.URLStorage, baseURL string) http.HandlerFun
 		}
 
 		// put it storage
-		if err := store.StoreURL(iurl); err != nil {
+		if err := store.StoreURLCtx(r.Context(), iurl); err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 		}
 

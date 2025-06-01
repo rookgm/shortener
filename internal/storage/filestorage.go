@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"context"
 	"github.com/rookgm/shortener/internal/models"
 	"github.com/rookgm/shortener/internal/recorder"
 	"os"
@@ -50,8 +51,8 @@ func (st *FileStorage) LoadFromFile() error {
 	return nil
 }
 
-// StoreURL add url alias and original url to storage
-func (st *FileStorage) StoreURL(url models.ShrURL) error {
+// StoreURLCtx add url alias and original url to storage
+func (st *FileStorage) StoreURLCtx(ctx context.Context, url models.ShrURL) error {
 	st.mtx.Lock()
 	defer st.mtx.Unlock()
 
@@ -78,9 +79,9 @@ func (st *FileStorage) StoreURL(url models.ShrURL) error {
 	return nil
 }
 
-// GetURL returns url alias and original url by alias
+// GetURLCtx returns url alias and original url by alias
 // if alias is not exist return an error
-func (st *FileStorage) GetURL(alias string) (models.ShrURL, error) {
+func (st *FileStorage) GetURLCtx(ctx context.Context, alias string) (models.ShrURL, error) {
 	st.mtx.RLock()
 	defer st.mtx.RUnlock()
 

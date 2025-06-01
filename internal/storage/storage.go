@@ -1,11 +1,12 @@
 package storage
 
 import (
+	"context"
 	"github.com/rookgm/shortener/internal/models"
 )
 
 type URLStorage interface {
-	StoreURL(url models.ShrURL) error
-	GetURL(alias string) (models.ShrURL, error)
+	StoreURLCtx(ctx context.Context, url models.ShrURL) error
+	GetURLCtx(ctx context.Context, alias string) (models.ShrURL, error)
 	LoadFromFile() error
 }

@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"context"
 	"errors"
 	"github.com/rookgm/shortener/internal/models"
 	"sync"
@@ -21,16 +22,16 @@ func NewMemStorage() *MemStorage {
 	}
 }
 
-// StoreURL is store ShrURL
-func (ms *MemStorage) StoreURL(url models.ShrURL) error {
+// StoreURLCtx is store ShrURL
+func (ms *MemStorage) StoreURLCtx(ctx context.Context, url models.ShrURL) error {
 	ms.mu.Lock()
 	defer ms.mu.Unlock()
 	ms.m[url.Alias] = url.URL
 	return nil
 }
 
-// GetURL is return ShrURL by alias
-func (ms *MemStorage) GetURL(alias string) (models.ShrURL, error) {
+// GetURLCtx is return ShrURL by alias
+func (ms *MemStorage) GetURLCtx(ctx context.Context, alias string) (models.ShrURL, error) {
 	ms.mu.RLock()
 	defer ms.mu.RUnlock()
 	url, ok := ms.m[alias]

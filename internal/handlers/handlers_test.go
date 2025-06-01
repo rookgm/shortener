@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"github.com/go-chi/chi/v5"
 	"github.com/rookgm/shortener/internal/models"
@@ -28,7 +29,7 @@ func TestGetHandler(t *testing.T) {
 		URL:   "https://practicum.yandex.ru/",
 	}
 
-	err := st.StoreURL(url)
+	err := st.StoreURLCtx(context.Background(), url)
 	require.NoError(t, err)
 
 	type want struct {

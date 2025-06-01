@@ -13,6 +13,13 @@ type Config struct {
 	DataBaseDSN string
 }
 
+const (
+	defaultServerAddr  = ":8080"
+	defaultBaseURL     = "http://localhost:8080/"
+	defaultLogLevel    = "info"
+	defaultStoragePath = "/tmp/short-url-db.json"
+)
+
 func Init() (*Config, error) {
 	cfg := Config{}
 
@@ -30,7 +37,7 @@ func Init() (*Config, error) {
 	}
 
 	if cfg.ServerAddr == "" {
-		cfg.ServerAddr = ":8080"
+		cfg.ServerAddr = defaultServerAddr
 	}
 
 	if baseURLEnv := os.Getenv("BASE_URL"); baseURLEnv != "" {
@@ -38,11 +45,15 @@ func Init() (*Config, error) {
 	}
 
 	if cfg.BaseURL == "" {
-		cfg.BaseURL = "http://localhost:8080/"
+		cfg.BaseURL = defaultBaseURL
 	}
 
 	if logLevelEnv := os.Getenv("LOG_LEVEL"); logLevelEnv != "" {
 		cfg.LogLevel = logLevelEnv
+	}
+
+	if cfg.LogLevel == "" {
+		cfg.LogLevel = defaultLogLevel
 	}
 
 	if storagePathEnv := os.Getenv("FILE_STORAGE_PATH"); storagePathEnv != "" {
@@ -50,7 +61,7 @@ func Init() (*Config, error) {
 	}
 
 	if cfg.StoragePath == "" {
-		cfg.StoragePath = "storage.json"
+		cfg.StoragePath = defaultStoragePath
 	}
 
 	if dataBaseDSNEnv := os.Getenv("DATABASE_DSN"); dataBaseDSNEnv != "" {
