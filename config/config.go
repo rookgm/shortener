@@ -24,11 +24,11 @@ func Init() (*Config, error) {
 	cfg := Config{}
 
 	// init flags
-	flag.StringVar(&cfg.ServerAddr, "a", ":8080", "server address")
-	flag.StringVar(&cfg.BaseURL, "b", "http://localhost:8080/", "base url")
-	flag.StringVar(&cfg.LogLevel, "l", "info", "log level")
-	flag.StringVar(&cfg.StoragePath, "f", "/tmp/short-url-db.json", "storage path")
-	flag.StringVar(&cfg.DataBaseDSN, "d", "postgres://postgres:postgres@postgres:5432/praktikum?sslmode=disable", "database address")
+	flag.StringVar(&cfg.ServerAddr, "a", "", "server address")
+	flag.StringVar(&cfg.BaseURL, "b", "", "base url")
+	flag.StringVar(&cfg.LogLevel, "l", "", "log level")
+	flag.StringVar(&cfg.StoragePath, "f", "", "storage path")
+	flag.StringVar(&cfg.DataBaseDSN, "d", "", "database address")
 
 	flag.Parse()
 
