@@ -129,3 +129,75 @@ func PingHandler(sdb *db.DataBase) http.HandlerFunc {
 		w.WriteHeader(http.StatusOK)
 	}
 }
+
+type BatchRequest struct {
+	CorrelationID string `json:"correlation_id"`
+	OriginalURL   string `json:"original_url"`
+}
+
+type BatchResponse struct {
+	CorrelationID string `json:"correlation_id"`
+	ShortURL      string `json:"short_url"`
+}
+
+func PostBatchHandler(store storage.URLStorage, baseURL string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		logger.Log.Debug("check Content-Type")
+		if ct := r.Header.Get("Content-Type"); ct != "" {
+			st := strings.ToLower(strings.TrimSpace(strings.Split(ct, ";")[0]))
+			if !strings.Contains(st, "application/json") {
+				msg := "Content-Type is not application/json"
+				logger.Log.Debug(msg, zap.String("is", ct))
+				http.Error(w, msg, http.StatusUnsupportedMediaType)
+				return
+			}
+		}
+
+		var batchReq []BatchRequest
+		var batchResp []BatchResponse
+
+		logger.Log.Debug("decode batch request")
+		if err := json.NewDecoder(r.Body).Decode(&batchReq); err != nil {
+			logger.Log.Debug("cannot decode JSON body", zap.Error(err))
+			http.Error(w, "bad request", http.StatusBadRequest)
+			return
+		}
+		defer r.Body.Close()
+
+		if len(batchReq) == 0 {
+			logger.Log.Debug("batch request is empty")
+			http.Error(w, "batch request is empty", http.StatusBadRequest)
+			return
+		}
+
+		for _, breq := range batchReq {
+			iurl := models.ShrURL{
+				Alias: random.RandString(6),
+				URL:   breq.OriginalURL,
+			}
+
+			if err := store.StoreURLCtx(r.Context(), iurl); err != nil {
+				continue
+			}
+
+			surl, err := url.JoinPath(baseURL, iurl.Alias)
+			if err != nil {
+				logger.Log.Debug("join url path", zap.Error(err))
+				continue
+			}
+
+			batchResp = append(batchResp, BatchResponse{
+				CorrelationID: breq.CorrelationID,
+				ShortURL:      surl,
+			})
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+
+		if err := json.NewEncoder(w).Encode(batchResp); err != nil {
+			logger.Log.Debug("cannot encode JSON body", zap.Error(err))
+			return
+		}
+	}
+}

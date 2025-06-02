@@ -58,6 +58,7 @@ func Run(config *config.Config) error {
 		router.Get("/{id}", handlers.GetHandler(st))
 		router.Post("/api/shorten", handlers.APIShortenHandler(st, config.BaseURL))
 		router.Get("/ping", handlers.PingHandler(sdb))
+		router.Post("/api/shorten/batch", handlers.PostBatchHandler(st, config.BaseURL))
 	})
 
 	return http.ListenAndServe(config.ServerAddr, router)
