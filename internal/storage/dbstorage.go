@@ -46,6 +46,37 @@ func (d *DBStorage) StoreURLCtx(ctx context.Context, url models.ShrURL) error {
 	return nil
 }
 
+// StoreBatchURLCtx stores batch urls
+func (d *DBStorage) StoreBatchURLCtx(ctx context.Context, urls []models.ShrURL) error {
+	tx, err := d.db.DB.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	stmt, err := d.db.DB.PrepareContext(ctx, "INSERT INTO urls(url,alias) values($1,$2)")
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+
+	for _, url := range urls {
+		_, err = stmt.ExecContext(ctx, url.URL, url.Alias)
+		if err != nil {
+			var pgErr *pgconn.PgError
+			// does the url exist
+			if errors.As(err, &pgErr) && pgErr.Code == pgerrcode.UniqueViolation {
+				// url exist
+				continue
+			} else {
+				return err
+			}
+		}
+	}
+
+	return tx.Commit()
+}
+
 // GetURLCtx returns url alias and original url by alias
 // if alias is not exist return an error
 func (d *DBStorage) GetURLCtx(ctx context.Context, alias string) (models.ShrURL, error) {

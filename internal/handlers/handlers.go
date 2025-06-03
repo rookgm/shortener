@@ -197,17 +197,30 @@ func PostBatchHandler(store storage.URLStorage, baseURL string) http.HandlerFunc
 			return
 		}
 
+		var batchURL []models.ShrURL
+		// prepare batch urls
 		for _, breq := range batchReq {
 			iurl := models.ShrURL{
 				Alias: random.RandString(6),
 				URL:   breq.OriginalURL,
 			}
+			batchURL = append(batchURL, iurl)
+		}
 
-			if err := store.StoreURLCtx(r.Context(), iurl); err != nil {
+		if err := store.StoreBatchURLCtx(r.Context(), batchURL); err != nil {
+			logger.Log.Debug("can't save batch urls")
+			http.Error(w, "can't save batch urls", http.StatusBadRequest)
+			return
+		}
+
+		// forming batch result
+		for _, breq := range batchReq {
+			rurl, err := store.GetAliasCtx(r.Context(), breq.OriginalURL)
+			if err != nil {
 				continue
 			}
 
-			surl, err := url.JoinPath(baseURL, iurl.Alias)
+			surl, err := url.JoinPath(baseURL, rurl.Alias)
 			if err != nil {
 				logger.Log.Debug("join url path", zap.Error(err))
 				continue

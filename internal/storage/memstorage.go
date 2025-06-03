@@ -20,21 +20,44 @@ func NewMemStorage() *MemStorage {
 	}
 }
 
+// isURLExist checks existing url
+func (ms *MemStorage) isURLExist(url string) bool {
+	// does the url exist?
+	for _, v := range ms.m {
+		if strings.Compare(v, url) == 0 {
+			// url exist
+			return true
+		}
+	}
+	return false
+}
+
 // StoreURLCtx is store ShrURL
 func (ms *MemStorage) StoreURLCtx(ctx context.Context, url models.ShrURL) error {
 	ms.mu.Lock()
 	defer ms.mu.Unlock()
 
-	// does the url exist?
-	for _, v := range ms.m {
-		if strings.Compare(v, url.URL) == 0 {
-			// url exist
-			return ErrURLExists
-		}
+	if ms.isURLExist(url.URL) {
+		return ErrURLExists
 	}
-
 	// put url
 	ms.m[url.Alias] = url.URL
+	return nil
+}
+
+// StoreBatchURLCtx stores batch urls
+func (ms *MemStorage) StoreBatchURLCtx(ctx context.Context, urls []models.ShrURL) error {
+	ms.mu.Lock()
+	defer ms.mu.Unlock()
+
+	for _, url := range urls {
+		if ms.isURLExist(url.URL) {
+			// url exists
+			continue
+		}
+		// put url
+		ms.m[url.Alias] = url.URL
+	}
 	return nil
 }
 
