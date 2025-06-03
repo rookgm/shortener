@@ -109,7 +109,7 @@ func TestPostHandler(t *testing.T) {
 		{
 			name:   "other_Content-Type",
 			header: "multipart/form-data",
-			body:   "http://practicum.yandex.ru/",
+			body:   "http://practicum.yandex.ru/test",
 			want: want{
 				code:        http.StatusCreated,
 				response:    `http://localhost:8080/{id}`,
@@ -121,6 +121,16 @@ func TestPostHandler(t *testing.T) {
 			body: "",
 			want: want{
 				code:        http.StatusBadRequest,
+				contentType: "text/plain",
+			},
+		},
+		{
+			name:   "test_status_conflict",
+			header: "text/plain",
+			body:   "http://practicum.yandex.ru/",
+			want: want{
+				code:        http.StatusConflict,
+				response:    `http://localhost:8080/{id}`,
 				contentType: "text/plain",
 			},
 		},
