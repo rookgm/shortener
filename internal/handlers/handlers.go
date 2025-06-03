@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"github.com/go-chi/chi/v5"
 	"github.com/rookgm/shortener/internal/db"
 	"github.com/rookgm/shortener/internal/logger"
@@ -44,13 +45,26 @@ func PostHandler(store storage.URLStorage, baseURL string) http.HandlerFunc {
 			URL:   string(body),
 		}
 
+		statusCode := http.StatusCreated
+
 		// put it storage
 		if err := store.StoreURLCtx(r.Context(), iurl); err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
+			if errors.Is(err, storage.ErrURLExists) {
+				statusCode = http.StatusConflict
+				ourl, err := store.GetAliasCtx(r.Context(), iurl.URL)
+				if err != nil {
+					http.Error(w, "bad request", http.StatusBadRequest)
+					return
+				}
+				iurl = ourl
+			} else {
+				http.Error(w, "bad request", http.StatusBadRequest)
+				return
+			}
 		}
 
 		w.Header().Set("Content-Type", "text/plain")
-		w.WriteHeader(http.StatusCreated)
+		w.WriteHeader(statusCode)
 		rurl, err := url.JoinPath(baseURL, iurl.Alias)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
@@ -94,13 +108,26 @@ func APIShortenHandler(store storage.URLStorage, baseURL string) http.HandlerFun
 			URL:   req.URL,
 		}
 
+		statusCode := http.StatusCreated
+
 		// put it storage
 		if err := store.StoreURLCtx(r.Context(), iurl); err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
+			if errors.Is(err, storage.ErrURLExists) {
+				statusCode = http.StatusConflict
+				ourl, err := store.GetAliasCtx(r.Context(), iurl.URL)
+				if err != nil {
+					http.Error(w, "bad request", http.StatusBadRequest)
+					return
+				}
+				iurl = ourl
+			} else {
+				http.Error(w, "bad request", http.StatusBadRequest)
+				return
+			}
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusCreated)
+		w.WriteHeader(statusCode)
 
 		var resp APIShortenResp
 		var err error

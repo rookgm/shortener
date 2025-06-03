@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"github.com/jackc/pgerrcode"
+	"github.com/jackc/pgx/v5/pgconn"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/rookgm/shortener/internal/db"
 	"github.com/rookgm/shortener/internal/models"
@@ -30,7 +32,14 @@ func (d *DBStorage) StoreURLCtx(ctx context.Context, url models.ShrURL) error {
 	}
 	_, err = stmt.ExecContext(ctx, url.URL, url.Alias)
 	if err != nil {
-		return err
+		var pgErr *pgconn.PgError
+		// does the url exist
+		if errors.As(err, &pgErr) && pgErr.Code == pgerrcode.UniqueViolation {
+			// url exist
+			return ErrURLExists
+		} else {
+			return err
+		}
 	}
 	defer stmt.Close()
 
@@ -55,5 +64,25 @@ func (d *DBStorage) GetURLCtx(ctx context.Context, alias string) (models.ShrURL,
 		return models.ShrURL{}, err
 	}
 
+	return models.ShrURL{Alias: alias, URL: url}, nil
+}
+
+// GetAliasCtx returns stored alias by url
+// if alias is not exist return an error
+func (d *DBStorage) GetAliasCtx(ctx context.Context, url string) (models.ShrURL, error) {
+	stmt, err := d.db.DB.Prepare("SELECT alias FROM urls WHERE url=$1")
+	if err != nil {
+		return models.ShrURL{}, err
+	}
+
+	var alias string
+
+	err = stmt.QueryRowContext(ctx, url).Scan(&alias)
+	switch {
+	case errors.Is(err, sql.ErrNoRows):
+		return models.ShrURL{}, ErrURLNotFound
+	case err != nil:
+		return models.ShrURL{}, err
+	}
 	return models.ShrURL{Alias: alias, URL: url}, nil
 }

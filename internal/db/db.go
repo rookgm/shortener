@@ -20,8 +20,8 @@ func OpenCtx(ctx context.Context, dsn string) (*DataBase, error) {
 	qu := `
 		CREATE TABLE IF NOT EXISTS urls(
 			id SERIAL PRIMARY KEY,
-			alias TEXT NOT NULL UNIQUE,
-			url TEXT NOT NULL);
+			alias TEXT NOT NULL,
+			url TEXT NOT NULL UNIQUE);
 		`
 
 	// create table if not exist
