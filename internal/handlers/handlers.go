@@ -1,22 +1,44 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
+	"io"
+	"net/http"
+	"net/url"
+	"strings"
+
 	"github.com/go-chi/chi/v5"
-	"github.com/rookgm/shortener/internal/db"
 	"github.com/rookgm/shortener/internal/logger"
 	"github.com/rookgm/shortener/internal/models"
 	"github.com/rookgm/shortener/internal/random"
 	"github.com/rookgm/shortener/internal/storage"
 	"go.uber.org/zap"
-	"io"
-	"net/http"
-	"net/url"
-	"strings"
 )
 
-func GetHandler(store storage.URLStorage) http.HandlerFunc {
+type URLGetter interface {
+	GetURLCtx(ctx context.Context, alias string) (models.ShrURL, error)
+}
+
+type URLStorer interface {
+	StoreURLCtx(ctx context.Context, url models.ShrURL) error
+}
+
+type URLStoreGetter interface {
+	URLGetter
+	URLStorer
+}
+
+type Handler struct {
+	store URLStoreGetter
+}
+
+func NewHandler(store URLStoreGetter) *Handler {
+	return &Handler{store: store}
+}
+
+func GetHandler(store URLGetter) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// get url alias from path
 		alias := chi.URLParam(r, "id")
@@ -30,7 +52,7 @@ func GetHandler(store storage.URLStorage) http.HandlerFunc {
 	}
 }
 
-func PostHandler(store storage.URLStorage, baseURL string) http.HandlerFunc {
+func PostHandler(store URLStoreGetter, baseURL string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// get url
 		body, err := io.ReadAll(r.Body)
@@ -145,7 +167,11 @@ func APIShortenHandler(store storage.URLStorage, baseURL string) http.HandlerFun
 	}
 }
 
-func PingHandler(sdb *db.DataBase) http.HandlerFunc {
+type DBChecker interface {
+	PingCtx(ctx context.Context) error
+}
+
+func PingHandler(sdb DBChecker) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := sdb.PingCtx(r.Context()); err != nil {
 			// failed: 500 Internal Server Error
