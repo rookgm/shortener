@@ -1,7 +1,8 @@
 package storage
 
 import (
-	"github.com/rookgm/shortener/internal/recorder"
+	"context"
+	"github.com/rookgm/shortener/internal/models"
 	"github.com/stretchr/testify/assert"
 	"os"
 	"testing"
@@ -9,63 +10,67 @@ import (
 
 func TestStorage_SetAndGet(t *testing.T) {
 
-	rec1 := recorder.Record{
-		ShortURL:    "4rSPg8ap",
-		OriginalURL: "http://yandex.ru",
-	}
-
-	rec2 := recorder.Record{
-		ShortURL:    "edVPg3ks",
-		OriginalURL: "http://ya.ru",
-	}
-
-	rec3 := recorder.Record{
-		ShortURL:    "dG56Hqxm",
-		OriginalURL: "http://practicum.yandex.ru",
-	}
-
 	fileName := "storage_test.json"
 	defer os.Remove(fileName)
 
-	st := NewStorage(fileName)
+	st := NewFileStorage(fileName)
 	assert.NotEqual(t, st, nil, "storage is nil")
 
-	err := st.Set(rec1.ShortURL, rec1.OriginalURL)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// set1
+	url1 := models.ShrURL{
+		Alias: "4rSPg8ap",
+		URL:   "http://yandex.ru",
+	}
+	err := st.StoreURLCtx(ctx, url1)
 	assert.NoError(t, err, "set")
 
-	err = st.Set(rec2.ShortURL, rec2.OriginalURL)
+	// set 2
+	url2 := models.ShrURL{
+		Alias: "edVPg3ks",
+		URL:   "http://ya.ru",
+	}
+	err = st.StoreURLCtx(ctx, url2)
 	assert.NoError(t, err, "set")
 
-	err = st.Set(rec3.ShortURL, rec3.OriginalURL)
+	// set 3
+	url3 := models.ShrURL{
+		Alias: "dG56Hqxm",
+		URL:   "http://practicum.yandex.ru",
+	}
+	err = st.StoreURLCtx(ctx, url3)
 	assert.NoError(t, err, "set")
 
-	v, err := st.Get(rec1.ShortURL)
+	v, err := st.GetURLCtx(ctx, url1.Alias)
 	assert.NoError(t, err, "get")
-	assert.Equal(t, rec1.OriginalURL, v)
+	assert.Equal(t, url1.URL, v.URL)
 
-	v, err = st.Get(rec2.ShortURL)
+	v, err = st.GetURLCtx(ctx, url2.Alias)
 	assert.NoError(t, err, "get")
-	assert.Equal(t, rec2.OriginalURL, v)
+	assert.Equal(t, url2.URL, v.URL)
 
-	v, err = st.Get(rec3.ShortURL)
+	v, err = st.GetURLCtx(ctx, url3.Alias)
 	assert.NoError(t, err, "get")
-	assert.Equal(t, rec3.OriginalURL, v)
+	assert.Equal(t, url3.URL, v.URL)
 
-	fst := NewStorage(fileName)
+	// file storage
+	fst := NewFileStorage(fileName)
 	assert.NotEqual(t, st, nil, "storage is nil")
 
 	err = fst.LoadFromFile()
 	assert.NoError(t, err, "LoadFromFile")
 
-	v, err = fst.Get(rec1.ShortURL)
+	v, err = fst.GetURLCtx(ctx, url1.Alias)
 	assert.NoError(t, err, "get")
-	assert.Equal(t, rec1.OriginalURL, v)
+	assert.Equal(t, url1.URL, v.URL)
 
-	v, err = fst.Get(rec2.ShortURL)
+	v, err = fst.GetURLCtx(ctx, url2.Alias)
 	assert.NoError(t, err, "get")
-	assert.Equal(t, rec2.OriginalURL, v)
+	assert.Equal(t, url2.URL, v.URL)
 
-	v, err = fst.Get(rec3.ShortURL)
+	v, err = fst.GetURLCtx(ctx, url3.Alias)
 	assert.NoError(t, err, "get")
-	assert.Equal(t, rec3.OriginalURL, v)
+	assert.Equal(t, url3.URL, v.URL)
 }

@@ -10,16 +10,25 @@ type Config struct {
 	BaseURL     string
 	LogLevel    string
 	StoragePath string
+	DataBaseDSN string
 }
+
+const (
+	defaultServerAddr  = ":8080"
+	defaultBaseURL     = "http://localhost:8080/"
+	defaultLogLevel    = "info"
+	defaultStoragePath = "/tmp/short-url-db.json"
+)
 
 func Init() (*Config, error) {
 	cfg := Config{}
 
 	// init flags
-	flag.StringVar(&cfg.ServerAddr, "a", ":8080", "server address")
-	flag.StringVar(&cfg.BaseURL, "b", "http://localhost:8080/", "base url")
-	flag.StringVar(&cfg.LogLevel, "l", "info", "log level")
-	flag.StringVar(&cfg.StoragePath, "f", "storage.json", "storage path")
+	flag.StringVar(&cfg.ServerAddr, "a", "", "server address")
+	flag.StringVar(&cfg.BaseURL, "b", "", "base url")
+	flag.StringVar(&cfg.LogLevel, "l", "", "log level")
+	flag.StringVar(&cfg.StoragePath, "f", "", "storage path")
+	flag.StringVar(&cfg.DataBaseDSN, "d", "", "database address")
 
 	flag.Parse()
 
@@ -28,7 +37,7 @@ func Init() (*Config, error) {
 	}
 
 	if cfg.ServerAddr == "" {
-		cfg.ServerAddr = ":8080"
+		cfg.ServerAddr = defaultServerAddr
 	}
 
 	if baseURLEnv := os.Getenv("BASE_URL"); baseURLEnv != "" {
@@ -36,11 +45,15 @@ func Init() (*Config, error) {
 	}
 
 	if cfg.BaseURL == "" {
-		cfg.BaseURL = "http://localhost:8080/"
+		cfg.BaseURL = defaultBaseURL
 	}
 
 	if logLevelEnv := os.Getenv("LOG_LEVEL"); logLevelEnv != "" {
 		cfg.LogLevel = logLevelEnv
+	}
+
+	if cfg.LogLevel == "" {
+		cfg.LogLevel = defaultLogLevel
 	}
 
 	if storagePathEnv := os.Getenv("FILE_STORAGE_PATH"); storagePathEnv != "" {
@@ -48,7 +61,11 @@ func Init() (*Config, error) {
 	}
 
 	if cfg.StoragePath == "" {
-		cfg.StoragePath = "storage.json"
+		cfg.StoragePath = defaultStoragePath
+	}
+
+	if dataBaseDSNEnv := os.Getenv("DATABASE_DSN"); dataBaseDSNEnv != "" {
+		cfg.DataBaseDSN = dataBaseDSNEnv
 	}
 
 	return &cfg, nil
