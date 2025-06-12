@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/go-chi/chi/v5"
+	"github.com/rookgm/shortener/internal/client"
 	"github.com/rookgm/shortener/internal/db"
 	"github.com/rookgm/shortener/internal/logger"
 	"github.com/rookgm/shortener/internal/models"
@@ -30,7 +31,7 @@ func GetHandler(store storage.URLStorage) http.HandlerFunc {
 	}
 }
 
-func PostHandler(store storage.URLStorage, baseURL string) http.HandlerFunc {
+func PostHandler(store storage.URLStorage, baseURL string, token client.AuthToken) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// get url
 		body, err := io.ReadAll(r.Body)
@@ -40,13 +41,18 @@ func PostHandler(store storage.URLStorage, baseURL string) http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
+		// extract user ID
+		uid := token.GetUserID(r)
+
 		iurl := models.ShrURL{
-			Alias: random.RandString(6),
-			URL:   string(body),
+			Alias:  random.RandString(6),
+			URL:    string(body),
+			UserID: uid,
 		}
 
 		statusCode := http.StatusCreated
 
+		logger.Log.Debug("store url", zap.String("id", uid))
 		// put it storage
 		if err := store.StoreURLCtx(r.Context(), iurl); err != nil {
 			if errors.Is(err, storage.ErrURLExists) {
@@ -237,6 +243,62 @@ func PostBatchHandler(store storage.URLStorage, baseURL string) http.HandlerFunc
 
 		if err := json.NewEncoder(w).Encode(batchResp); err != nil {
 			logger.Log.Debug("cannot encode JSON body", zap.Error(err))
+			return
+		}
+	}
+}
+
+// UserURL represent user's url(short and original)
+type UserURL struct {
+	ShortURL    string `json:"short_url"`
+	OriginalURL string `json:"original_url"`
+}
+
+// GetUserUrls returns all urls to the user (route /api/user/urls)
+func GetUserUrls(store storage.URLStorage, baseURL string, token client.AuthToken) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		uid := token.GetUserID(r)
+		// get all user urls by id from storage
+		logger.Log.Debug("trying get user urls", zap.String("id", uid))
+		uurls, err := store.GetUserURLsCtx(r.Context(), uid)
+		if err != nil {
+			logger.Log.Error("get user urls from storage", zap.Error(err))
+			http.Error(w, "can't get user urls", http.StatusInternalServerError)
+			return
+		}
+		status := http.StatusOK
+
+		w.Header().Set("Content-Type", "application/json")
+
+		// user url is not exist
+		if len(uurls) == 0 {
+			logger.Log.Warn("user urls does not exist", zap.String("id", uid))
+			status = http.StatusNoContent
+			http.Error(w, "can't get user urls", http.StatusNoContent)
+			return
+		}
+
+		w.WriteHeader(status)
+
+		// output user urls
+		var userURLResp []UserURL
+
+		// prepare user urls
+		for _, uurl := range uurls {
+			urlPath, err := url.JoinPath(baseURL, uurl.Alias)
+			if err != nil {
+				logger.Log.Error("join url path", zap.Error(err))
+				continue
+			}
+			res := UserURL{
+				ShortURL:    urlPath,
+				OriginalURL: uurl.URL,
+			}
+			userURLResp = append(userURLResp, res)
+		}
+		// encode user urls to json and put it to response
+		if err := json.NewEncoder(w).Encode(userURLResp); err != nil {
+			logger.Log.Error("cannot encode JSON body", zap.Error(err))
 			return
 		}
 	}

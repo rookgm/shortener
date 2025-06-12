@@ -26,11 +26,11 @@ func NewDBStorage(db *db.DataBase) (*DBStorage, error) {
 
 // StoreURLCtx add url alias and original url to storage
 func (d *DBStorage) StoreURLCtx(ctx context.Context, url models.ShrURL) error {
-	stmt, err := d.db.DB.Prepare("INSERT INTO urls(url,alias) values($1,$2)")
+	stmt, err := d.db.DB.Prepare("INSERT INTO urls(userid,url,alias) values($1,$2,$3)")
 	if err != nil {
 		return err
 	}
-	_, err = stmt.ExecContext(ctx, url.URL, url.Alias)
+	_, err = stmt.ExecContext(ctx, url.UserID, url.URL, url.Alias)
 	if err != nil {
 		var pgErr *pgconn.PgError
 		// does the url exist
@@ -54,14 +54,14 @@ func (d *DBStorage) StoreBatchURLCtx(ctx context.Context, urls []models.ShrURL) 
 	}
 	defer tx.Rollback()
 
-	stmt, err := d.db.DB.PrepareContext(ctx, "INSERT INTO urls(url,alias) values($1,$2)")
+	stmt, err := d.db.DB.PrepareContext(ctx, "INSERT INTO urls(userid,url,alias) values($1,$2,$3)")
 	if err != nil {
 		return err
 	}
 	defer stmt.Close()
 
 	for _, url := range urls {
-		_, err = stmt.ExecContext(ctx, url.URL, url.Alias)
+		_, err = stmt.ExecContext(ctx, url.UserID, url.URL, url.Alias)
 		if err != nil {
 			var pgErr *pgconn.PgError
 			// does the url exist
@@ -116,4 +116,28 @@ func (d *DBStorage) GetAliasCtx(ctx context.Context, url string) (models.ShrURL,
 		return models.ShrURL{}, err
 	}
 	return models.ShrURL{Alias: alias, URL: url}, nil
+}
+
+// GetUserURLsCtx returns all user URLs by user ID
+func (d *DBStorage) GetUserURLsCtx(ctx context.Context, userID string) ([]models.ShrURL, error) {
+	rows, err := d.db.DB.Query("SELECT alias, url FROM urls WHERE userid=$1", userID)
+	if err != nil {
+		return nil, err
+	}
+
+	var userURLs []models.ShrURL
+
+	for rows.Next() {
+		var curURL models.ShrURL
+
+		if err := rows.Scan(&curURL.Alias, &curURL.URL); err != nil {
+			return nil, err
+		}
+		userURLs = append(userURLs, curURL)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+	return userURLs, nil
 }
