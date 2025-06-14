@@ -11,13 +11,21 @@ import (
 type MemStorage struct {
 	mu sync.RWMutex
 	m  map[string]string
+	// user urls grouped by uid
+	muser map[string][]models.ShrURL
 }
 
 // NewMemStorage creates a new storage in memory
 func NewMemStorage() *MemStorage {
 	return &MemStorage{
-		m: make(map[string]string),
+		m:     make(map[string]string),
+		muser: make(map[string][]models.ShrURL),
 	}
+}
+
+func (ms *MemStorage) LoadFromFile() error {
+	// nothing
+	return nil
 }
 
 // isURLExist checks existing url
@@ -42,6 +50,8 @@ func (ms *MemStorage) StoreURLCtx(ctx context.Context, url models.ShrURL) error 
 	}
 	// put url
 	ms.m[url.Alias] = url.URL
+	// put user url
+	ms.muser[url.UserID] = append(ms.muser[url.UserID], url)
 	return nil
 }
 
@@ -57,6 +67,8 @@ func (ms *MemStorage) StoreBatchURLCtx(ctx context.Context, urls []models.ShrURL
 		}
 		// put url
 		ms.m[url.Alias] = url.URL
+		// put user url
+		ms.muser[url.UserID] = append(ms.muser[url.UserID], url)
 	}
 	return nil
 }
@@ -85,7 +97,14 @@ func (ms *MemStorage) GetAliasCtx(ctx context.Context, url string) (models.ShrUR
 	return models.ShrURL{}, ErrAliasNotFound
 }
 
-func (ms *MemStorage) LoadFromFile() error {
-	// nothing
-	return nil
+// GetUserURLsCtx returns all user URLs by user ID
+func (ms *MemStorage) GetUserURLsCtx(ctx context.Context, userID string) ([]models.ShrURL, error) {
+	ms.mu.RLock()
+	defer ms.mu.RUnlock()
+	urls, ok := ms.muser[userID]
+	if !ok {
+		return nil, ErrUserNotFound
+	}
+
+	return urls, nil
 }

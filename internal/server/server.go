@@ -2,9 +2,11 @@ package server
 
 import (
 	"context"
+	"encoding/hex"
 	"errors"
 	"github.com/go-chi/chi/v5"
 	"github.com/rookgm/shortener/config"
+	"github.com/rookgm/shortener/internal/client"
 	"github.com/rookgm/shortener/internal/db"
 	"github.com/rookgm/shortener/internal/handlers"
 	"github.com/rookgm/shortener/internal/logger"
@@ -12,6 +14,8 @@ import (
 	"github.com/rookgm/shortener/internal/storage"
 	"net/http"
 )
+
+const authTokenKey = "f53ac685bbceebd75043e6be2e06ee07"
 
 func Run(config *config.Config) error {
 	if config == nil {
@@ -49,16 +53,28 @@ func Run(config *config.Config) error {
 		st = storage.NewMemStorage()
 	}
 
+	key, err := hex.DecodeString(authTokenKey)
+	if err != nil {
+		logger.Log.Error("can not extract key")
+		return err
+	}
+
+	token := client.NewAuthToken(key)
+
 	router := chi.NewRouter()
 	router.Use(logger.Middleware)
 	router.Use(middleware.GzipMiddleware)
+	router.Use(func(next http.Handler) http.Handler {
+		return middleware.Auth(token, next)
+	})
 
 	router.Route("/", func(r chi.Router) {
-		router.Post("/", handlers.PostHandler(st, config.BaseURL))
+		router.Post("/", handlers.PostHandler(st, config.BaseURL, token))
 		router.Get("/{id}", handlers.GetHandler(st))
 		router.Post("/api/shorten", handlers.APIShortenHandler(st, config.BaseURL))
 		router.Get("/ping", handlers.PingHandler(sdb))
 		router.Post("/api/shorten/batch", handlers.PostBatchHandler(st, config.BaseURL))
+		router.Get("/api/user/urls", handlers.GetUserUrls(st, config.BaseURL, token))
 	})
 
 	return http.ListenAndServe(config.ServerAddr, router)

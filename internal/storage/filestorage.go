@@ -12,7 +12,9 @@ import (
 
 // FileStorage presents storage on file
 type FileStorage struct {
-	m        map[string]string
+	m map[string]string
+	// user urls grouped by uid
+	muser    map[string][]models.ShrURL
 	mtx      sync.RWMutex
 	fileName string
 	rec      *recorder.Recorder
@@ -28,6 +30,7 @@ func NewFileStorage(filename string) *FileStorage {
 
 	return &FileStorage{
 		m:        make(map[string]string),
+		muser:    make(map[string][]models.ShrURL),
 		fileName: filename,
 		rec:      newRec,
 	}
@@ -78,6 +81,8 @@ func (fs *FileStorage) StoreURLCtx(ctx context.Context, url models.ShrURL) error
 
 	// put url
 	fs.m[url.Alias] = url.URL
+	// put user url
+	fs.muser[url.UserID] = append(fs.muser[url.UserID], url)
 
 	file, err := os.OpenFile(fs.fileName, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
@@ -119,6 +124,8 @@ func (fs *FileStorage) StoreBatchURLCtx(ctx context.Context, urls []models.ShrUR
 
 		// put url
 		fs.m[url.Alias] = url.URL
+		// put user url
+		fs.muser[url.UserID] = append(fs.muser[url.UserID], url)
 
 		fs.index++
 
@@ -160,4 +167,15 @@ func (fs *FileStorage) GetAliasCtx(ctx context.Context, url string) (models.ShrU
 		}
 	}
 	return models.ShrURL{}, ErrAliasNotFound
+}
+
+// GetUserURLsCtx returns all user URLs by user ID
+func (fs *FileStorage) GetUserURLsCtx(ctx context.Context, userID string) ([]models.ShrURL, error) {
+	fs.mtx.RLock()
+	defer fs.mtx.RUnlock()
+	urls, ok := fs.muser[userID]
+	if !ok {
+		return nil, ErrUserNotFound
+	}
+	return urls, nil
 }
