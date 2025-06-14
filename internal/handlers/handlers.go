@@ -41,7 +41,7 @@ func PostHandler(store storage.URLStorage, baseURL string, token client.AuthToke
 		}
 		defer r.Body.Close()
 
-		// extract user ID
+		// extract user ID from request cookie
 		uid := token.GetUserID(r)
 
 		iurl := models.ShrURL{
@@ -257,6 +257,7 @@ type UserURL struct {
 // GetUserUrls returns all urls to the user (route /api/user/urls)
 func GetUserUrls(store storage.URLStorage, baseURL string, token client.AuthToken) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		// extract user ID from request cookie
 		uid := token.GetUserID(r)
 		// get all user urls by id from storage
 		logger.Log.Debug("trying get user urls", zap.String("id", uid))

@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-const authCookieName = "shortener_auth"
+const authCookieName = "auth_shortener"
 
 // AuthToken is interface for client token authentication
 type AuthToken interface {
@@ -27,10 +27,11 @@ func NewAuthToken(key []byte) AuthToken {
 
 // Create creates a new jwt token with client uuid
 func (a *authToken) Create() (string, error) {
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"user_id": uuid.New().String(),
-		"exp":     time.Now().Add(24 * time.Hour).Unix(),
-	})
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256,
+		jwt.MapClaims{
+			"user_id": uuid.New().String(),
+			"exp":     time.Now().Add(24 * time.Hour).Unix(),
+		})
 
 	return token.SignedString(a.secretKey)
 }
