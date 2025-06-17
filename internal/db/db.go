@@ -22,7 +22,8 @@ func OpenCtx(ctx context.Context, dsn string) (*DataBase, error) {
 			id SERIAL PRIMARY KEY,
 			userid TEXT NOT NULL,
 			alias TEXT NOT NULL,
-			url TEXT NOT NULL UNIQUE);
+			url TEXT NOT NULL UNIQUE,
+			deleted BOOLEAN NOT NULL DEFAULT FALSE);
 		`
 
 	// create table if not exist

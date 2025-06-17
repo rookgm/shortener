@@ -108,3 +108,8 @@ func (ms *MemStorage) GetUserURLsCtx(ctx context.Context, userID string) ([]mode
 
 	return urls, nil
 }
+
+func (ms *MemStorage) DeleteUserURLsCtx(ctx context.Context, userID string, aliases []string) error {
+	// TODO
+	return nil
+}

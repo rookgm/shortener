@@ -74,7 +74,8 @@ func Run(config *config.Config) error {
 		router.Post("/api/shorten", handlers.APIShortenHandler(st, config.BaseURL))
 		router.Get("/ping", handlers.PingHandler(sdb))
 		router.Post("/api/shorten/batch", handlers.PostBatchHandler(st, config.BaseURL))
-		router.Get("/api/user/urls", handlers.GetUserUrls(st, config.BaseURL, token))
+		router.Get("/api/user/urls", handlers.GetUserUrlsHandler(st, config.BaseURL, token))
+		router.Delete("/api/user/urls", handlers.DeleteUserUrlsHandler(st, token))
 	})
 
 	return http.ListenAndServe(config.ServerAddr, router)

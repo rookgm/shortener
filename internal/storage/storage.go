@@ -19,5 +19,6 @@ type URLStorage interface {
 	GetURLCtx(ctx context.Context, alias string) (models.ShrURL, error)
 	GetAliasCtx(ctx context.Context, url string) (models.ShrURL, error)
 	GetUserURLsCtx(ctx context.Context, userID string) ([]models.ShrURL, error)
+	DeleteUserURLsCtx(ctx context.Context, userID string, aliases []string) error
 	LoadFromFile() error
 }

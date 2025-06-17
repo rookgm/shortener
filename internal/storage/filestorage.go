@@ -179,3 +179,8 @@ func (fs *FileStorage) GetUserURLsCtx(ctx context.Context, userID string) ([]mod
 	}
 	return urls, nil
 }
+
+func (fs *FileStorage) DeleteUserURLsCtx(ctx context.Context, userID string, aliases []string) error {
+	// TODO
+	return nil
+}
