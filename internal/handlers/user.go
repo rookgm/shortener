@@ -12,8 +12,6 @@ import (
 	"strings"
 )
 
-const numWorkers = 10
-
 // UserURL represent user's url(short and original)
 type UserURL struct {
 	ShortURL    string `json:"short_url"`
