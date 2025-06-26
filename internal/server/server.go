@@ -73,8 +73,24 @@ func Run(config *config.Config) error {
 	go func() {
 		for {
 			select {
-			// read aliases to delete
-			case toDelete := <-fanInCh:
+			case <-ctx.Done():
+				if len(batch) > 0 {
+					for _, b := range batch {
+						logger.Log.Debug("delete user urls", zap.String("uid", b.UID))
+						if err := st.DeleteUserURLsCtx(ctx, b.UID, b.Aliases); err != nil {
+							logger.Log.Error("can't delete user urls", zap.String("uid", b.UID), zap.Error(err))
+						}
+					}
+				}
+				return
+			case toDelete, ok := <-fanInCh:
+				if !ok {
+					if len(batch) > 0 {
+						if err := st.DeleteUserURLsCtx(ctx, toDelete.UID, toDelete.Aliases); err != nil {
+							logger.Log.Error("can't delete user urls", zap.String("uid", toDelete.UID), zap.Error(err))
+						}
+					}
+				}
 				logger.Log.Debug("got delete task in fanInCh", zap.Any("task", toDelete))
 				batch = append(batch, toDelete)
 			case <-ticker.C:
