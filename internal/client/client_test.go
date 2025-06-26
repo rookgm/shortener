@@ -5,10 +5,9 @@ import (
 )
 
 func Test_authToken_Verify(t *testing.T) {
-
-	tokenStr := "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NTA4NjkzNjUsInVzZXJfaWQiOiI1MWRiNGViYi04ZGFmLTQyMmYtYmQ4Ni03ZmFmYTNiN2YwMmEifQ.VXQh2HyzQXiS6TOKe1J_g9nPTs9QMCl5_UFwMsCtv8Y"
 	key := "secretkey"
 
+	tokenStr := "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiY2U3ODY4YTMtMDYwNi00MzM1LWIyZTktNWI2MDJmOWRiNWE0In0.c7kV1HPfLIIfvRU0fr6O3FFNL4BMLmgTLw_4HjN90wg"
 	tokenStrNoID := "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NTA4NzA1NDJ9.5kAcIZ9DyU6767My_Q7B1ZDyL0laf1LDyG5xhPUY9Sc"
 
 	type fields struct {
@@ -28,7 +27,7 @@ func Test_authToken_Verify(t *testing.T) {
 			name:    "valid_key",
 			fields:  fields{[]byte(key)},
 			args:    args{tokenStr},
-			want:    "51db4ebb-8daf-422f-bd86-7fafa3b7f02a",
+			want:    "ce7868a3-0606-4335-b2e9-5b602f9db5a4",
 			wantErr: false,
 		},
 		{

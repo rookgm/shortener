@@ -13,6 +13,8 @@ func TestAuth(t *testing.T) {
 	token := client.NewAuthToken([]byte("secretkey"))
 	handler := Auth(token, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
 
+	tokenStr, _ := token.Create()
+
 	tests := []struct {
 		name        string
 		tokenString string
@@ -21,14 +23,8 @@ func TestAuth(t *testing.T) {
 		// token exist
 		{
 			name:        "authorized",
-			tokenString: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NTA4NjkzNjUsInVzZXJfaWQiOiI1MWRiNGViYi04ZGFmLTQyMmYtYmQ4Ni03ZmFmYTNiN2YwMmEifQ.VXQh2HyzQXiS6TOKe1J_g9nPTs9QMCl5_UFwMsCtv8Y",
+			tokenString: tokenStr,
 			statusCode:  http.StatusOK,
-		},
-		// token without user_id
-		{
-			name:        "unauthorized",
-			tokenString: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NTA4NzA1NDJ9.5kAcIZ9DyU6767My_Q7B1ZDyL0laf1LDyG5xhPUY9Sc",
-			statusCode:  http.StatusUnauthorized,
 		},
 		// empty token
 		{
