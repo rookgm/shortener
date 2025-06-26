@@ -11,8 +11,11 @@ import (
 	"github.com/rookgm/shortener/internal/handlers"
 	"github.com/rookgm/shortener/internal/logger"
 	"github.com/rookgm/shortener/internal/middleware"
+	"github.com/rookgm/shortener/internal/models"
 	"github.com/rookgm/shortener/internal/storage"
+	"go.uber.org/zap"
 	"net/http"
+	"time"
 )
 
 const authTokenKey = "f53ac685bbceebd75043e6be2e06ee07"
@@ -59,6 +62,36 @@ func Run(config *config.Config) error {
 		return err
 	}
 
+	// faInCh channel accepts data for batch alias deletion
+	fanInCh := make(chan models.UserDeleteTask, 1000)
+
+	// run delete worker
+	var batch []models.UserDeleteTask
+	ticker := time.NewTicker(10 * time.Second)
+	defer ticker.Stop()
+
+	go func() {
+		for {
+			select {
+			// read aliases to delete
+			case toDelete := <-fanInCh:
+				logger.Log.Debug("got delete task in fanInCh", zap.Any("task", toDelete))
+				batch = append(batch, toDelete)
+			case <-ticker.C:
+				logger.Log.Debug("ticker tick")
+				logger.Log.Debug("starting delete user urls...")
+				for _, b := range batch {
+					logger.Log.Debug("delete user urls", zap.String("uid", b.UID))
+					if err := st.DeleteUserURLsCtx(ctx, b.UID, b.Aliases); err != nil {
+						logger.Log.Error("can't delete user urls", zap.String("uid", b.UID), zap.Error(err))
+					}
+				}
+				batch = nil
+			}
+			logger.Log.Debug("finished delete user urls")
+		}
+	}()
+
 	token := client.NewAuthToken(key)
 
 	router := chi.NewRouter()
@@ -75,7 +108,7 @@ func Run(config *config.Config) error {
 		router.Get("/ping", handlers.PingHandler(sdb))
 		router.Post("/api/shorten/batch", handlers.PostBatchHandler(st, config.BaseURL))
 		router.Get("/api/user/urls", handlers.GetUserUrlsHandler(st, config.BaseURL, token))
-		router.Delete("/api/user/urls", handlers.DeleteUserUrlsHandler(st, token))
+		router.Delete("/api/user/urls", handlers.DeleteUserUrlsHandler(st, token, fanInCh))
 	})
 
 	return http.ListenAndServe(config.ServerAddr, router)

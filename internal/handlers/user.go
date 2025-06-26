@@ -1,16 +1,15 @@
 package handlers
 
 import (
-	"context"
 	"encoding/json"
 	"github.com/rookgm/shortener/internal/client"
 	"github.com/rookgm/shortener/internal/logger"
+	"github.com/rookgm/shortener/internal/models"
 	"github.com/rookgm/shortener/internal/storage"
 	"go.uber.org/zap"
 	"net/http"
 	"net/url"
 	"strings"
-	"sync"
 )
 
 const numWorkers = 10
@@ -73,7 +72,7 @@ func GetUserUrlsHandler(store storage.URLStorage, baseURL string, token client.A
 }
 
 // DeleteUserUrlsHandler deletes user urls
-func DeleteUserUrlsHandler(store storage.URLStorage, token client.AuthToken) http.HandlerFunc {
+func DeleteUserUrlsHandler(store storage.URLStorage, token client.AuthToken, fanInCh chan<- models.UserDeleteTask) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		logger.Log.Debug("check Content-Type")
 		if ct := r.Header.Get("Content-Type"); ct != "" {
@@ -98,77 +97,12 @@ func DeleteUserUrlsHandler(store storage.URLStorage, token client.AuthToken) htt
 		// extract user ID from request cookie
 		uid := token.GetUserID(r)
 
-		if err := deleteBatchUserUrlsCtx(r.Context(), store, uid, aliasToDelete); err != nil {
-			logger.Log.Error("can't delete user urls", zap.String("id", uid))
-			http.Error(w, "bad request", http.StatusBadRequest)
-			return
+		// pass user aliases to delete worker
+		fanInCh <- models.UserDeleteTask{
+			UID:     uid,
+			Aliases: aliasToDelete,
 		}
 
 		w.WriteHeader(http.StatusAccepted)
 	}
-}
-
-// generator writes alias to channel
-func generator(done <-chan struct{}, input []string) <-chan string {
-	out := make(chan string)
-	go func() {
-		defer close(out)
-		for _, data := range input {
-			select {
-			case out <- data:
-			case <-done:
-				return
-			}
-		}
-	}()
-
-	return out
-}
-
-// fanIn combines the data streams from multiple sources into one
-func fanIn(done <-chan struct{}, inputs ...<-chan string) <-chan string {
-	output := make(chan string, 10)
-	var wg sync.WaitGroup
-
-	for _, input := range inputs {
-		wg.Add(1)
-		go func(ch <-chan string) {
-			defer wg.Done()
-			for val := range ch {
-				select {
-				case output <- val:
-				case <-done:
-					return
-				}
-			}
-		}(input)
-	}
-
-	go func() {
-		wg.Wait()
-		close(output)
-	}()
-
-	return output
-}
-
-// deleteBatchUserUrlsCtx deletes batch of user's urls
-func deleteBatchUserUrlsCtx(ctx context.Context, store storage.URLStorage, userID string, aliases []string) error {
-	done := make(chan struct{})
-	defer close(done)
-
-	input := generator(done, aliases)
-	result := fanIn(done, input)
-
-	var batch []string
-
-	for res := range result {
-		batch = append(batch, res)
-	}
-
-	if err := store.DeleteUserURLsCtx(ctx, userID, batch); err != nil {
-		return err
-	}
-
-	return nil
 }
