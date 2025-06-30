@@ -8,7 +8,9 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/rookgm/shortener/internal/db"
+	"github.com/rookgm/shortener/internal/logger"
 	"github.com/rookgm/shortener/internal/models"
+	"go.uber.org/zap"
 )
 
 // DBStorage presents database storage
@@ -26,11 +28,11 @@ func NewDBStorage(db *db.DataBase) (*DBStorage, error) {
 
 // StoreURLCtx add url alias and original url to storage
 func (d *DBStorage) StoreURLCtx(ctx context.Context, url models.ShrURL) error {
-	stmt, err := d.db.DB.Prepare("INSERT INTO urls(url,alias) values($1,$2)")
+	stmt, err := d.db.DB.Prepare("INSERT INTO urls(userid,url,alias) values($1,$2,$3)")
 	if err != nil {
 		return err
 	}
-	_, err = stmt.ExecContext(ctx, url.URL, url.Alias)
+	_, err = stmt.ExecContext(ctx, url.UserID, url.URL, url.Alias)
 	if err != nil {
 		var pgErr *pgconn.PgError
 		// does the url exist
@@ -54,14 +56,14 @@ func (d *DBStorage) StoreBatchURLCtx(ctx context.Context, urls []models.ShrURL) 
 	}
 	defer tx.Rollback()
 
-	stmt, err := d.db.DB.PrepareContext(ctx, "INSERT INTO urls(url,alias) values($1,$2)")
+	stmt, err := d.db.DB.PrepareContext(ctx, "INSERT INTO urls(userid,url,alias) values($1,$2,$3)")
 	if err != nil {
 		return err
 	}
 	defer stmt.Close()
 
 	for _, url := range urls {
-		_, err = stmt.ExecContext(ctx, url.URL, url.Alias)
+		_, err = stmt.ExecContext(ctx, url.UserID, url.URL, url.Alias)
 		if err != nil {
 			var pgErr *pgconn.PgError
 			// does the url exist
@@ -80,14 +82,15 @@ func (d *DBStorage) StoreBatchURLCtx(ctx context.Context, urls []models.ShrURL) 
 // GetURLCtx returns url alias and original url by alias
 // if alias is not exist return an error
 func (d *DBStorage) GetURLCtx(ctx context.Context, alias string) (models.ShrURL, error) {
-	stmt, err := d.db.DB.Prepare("SELECT url FROM urls WHERE alias=$1")
+	stmt, err := d.db.DB.Prepare("SELECT url, deleted FROM urls WHERE alias=$1")
 	if err != nil {
 		return models.ShrURL{}, err
 	}
 
 	var url string
+	var deleted bool
 
-	err = stmt.QueryRowContext(ctx, alias).Scan(&url)
+	err = stmt.QueryRowContext(ctx, alias).Scan(&url, &deleted)
 	switch {
 	case errors.Is(err, sql.ErrNoRows):
 		return models.ShrURL{}, ErrURLNotFound
@@ -95,7 +98,7 @@ func (d *DBStorage) GetURLCtx(ctx context.Context, alias string) (models.ShrURL,
 		return models.ShrURL{}, err
 	}
 
-	return models.ShrURL{Alias: alias, URL: url}, nil
+	return models.ShrURL{Alias: alias, URL: url, Deleted: deleted}, nil
 }
 
 // GetAliasCtx returns stored alias by url
@@ -116,4 +119,57 @@ func (d *DBStorage) GetAliasCtx(ctx context.Context, url string) (models.ShrURL,
 		return models.ShrURL{}, err
 	}
 	return models.ShrURL{Alias: alias, URL: url}, nil
+}
+
+// GetUserURLsCtx returns all user URLs by user ID
+func (d *DBStorage) GetUserURLsCtx(ctx context.Context, userID string) ([]models.ShrURL, error) {
+	rows, err := d.db.DB.Query("SELECT alias, url FROM urls WHERE userid=$1", userID)
+	if err != nil {
+		return nil, err
+	}
+
+	var userURLs []models.ShrURL
+
+	for rows.Next() {
+		var curURL models.ShrURL
+
+		if err := rows.Scan(&curURL.Alias, &curURL.URL); err != nil {
+			return nil, err
+		}
+		userURLs = append(userURLs, curURL)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+	return userURLs, nil
+}
+
+func (d *DBStorage) DeleteUserURLsCtx(ctx context.Context, userID string, aliases []string) error {
+	tx, err := d.db.DB.Begin()
+	if err != nil {
+		return err
+	}
+
+	stmt, err := tx.Prepare("UPDATE urls SET deleted=true WHERE userid=$1 AND alias=$2")
+	if err != nil {
+		return err
+	}
+
+	for _, alias := range aliases {
+		_, err = stmt.ExecContext(ctx, userID, alias)
+		if err != nil {
+			tx.Rollback()
+			logger.Log.Warn("cannot update", zap.String("alias", alias), zap.Error(err))
+			continue
+		}
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		logger.Log.Error("cannot commit", zap.Error(err))
+		return err
+	}
+
+	return nil
 }

@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/go-chi/chi/v5"
+	"github.com/rookgm/shortener/internal/client"
 	"github.com/rookgm/shortener/internal/models"
 	"github.com/rookgm/shortener/internal/storage"
 	"github.com/stretchr/testify/assert"
@@ -83,6 +84,7 @@ func TestGetHandler(t *testing.T) {
 func TestPostHandler(t *testing.T) {
 
 	st := storage.NewMemStorage()
+	auth := client.NewAuthToken([]byte("secretkey"))
 
 	type want struct {
 		code        int
@@ -136,7 +138,7 @@ func TestPostHandler(t *testing.T) {
 		},
 	}
 
-	handler := PostHandler(st, "http://localhost:8080")
+	handler := PostHandler(st, "http://localhost:8080", auth)
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {

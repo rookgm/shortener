@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/go-chi/chi/v5"
+	"github.com/rookgm/shortener/internal/client"
 	"github.com/rookgm/shortener/internal/db"
 	"github.com/rookgm/shortener/internal/logger"
 	"github.com/rookgm/shortener/internal/models"
@@ -26,11 +27,17 @@ func GetHandler(store storage.URLStorage) http.HandlerFunc {
 			http.Error(w, "bad request", http.StatusBadRequest)
 			return
 		}
+
+		if rurl.Deleted {
+			w.WriteHeader(http.StatusGone)
+			return
+		}
+
 		http.Redirect(w, r, rurl.URL, http.StatusTemporaryRedirect)
 	}
 }
 
-func PostHandler(store storage.URLStorage, baseURL string) http.HandlerFunc {
+func PostHandler(store storage.URLStorage, baseURL string, token client.AuthToken) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// get url
 		body, err := io.ReadAll(r.Body)
@@ -40,13 +47,18 @@ func PostHandler(store storage.URLStorage, baseURL string) http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
+		// extract user ID from request cookie
+		uid := token.GetUserID(r)
+
 		iurl := models.ShrURL{
-			Alias: random.RandString(6),
-			URL:   string(body),
+			Alias:  random.RandString(6),
+			URL:    string(body),
+			UserID: uid,
 		}
 
 		statusCode := http.StatusCreated
 
+		logger.Log.Debug("store url", zap.String("id", uid))
 		// put it storage
 		if err := store.StoreURLCtx(r.Context(), iurl); err != nil {
 			if errors.Is(err, storage.ErrURLExists) {

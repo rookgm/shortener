@@ -16,7 +16,7 @@ type Config struct {
 const (
 	defaultServerAddr  = ":8080"
 	defaultBaseURL     = "http://localhost:8080/"
-	defaultLogLevel    = "info"
+	defaultLogLevel    = "debug"
 	defaultStoragePath = "/tmp/short-url-db.json"
 )
 
