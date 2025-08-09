@@ -3,6 +3,11 @@ package handlers
 import (
 	"encoding/json"
 	"errors"
+	"io"
+	"net/http"
+	"net/url"
+	"strings"
+
 	"github.com/go-chi/chi/v5"
 	"github.com/rookgm/shortener/internal/client"
 	"github.com/rookgm/shortener/internal/db"
@@ -11,10 +16,6 @@ import (
 	"github.com/rookgm/shortener/internal/random"
 	"github.com/rookgm/shortener/internal/storage"
 	"go.uber.org/zap"
-	"io"
-	"net/http"
-	"net/url"
-	"strings"
 )
 
 func GetHandler(store storage.URLStorage) http.HandlerFunc {

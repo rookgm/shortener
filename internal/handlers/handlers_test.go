@@ -227,3 +227,23 @@ func TestApiShortenHandler(t *testing.T) {
 		})
 	}
 }
+
+func BenchmarkPostHandler(b *testing.B) {
+	st := storage.NewMemStorage()
+
+	auth := client.NewAuthToken([]byte("secretkey"))
+	body := `http://practicum.yandex.ru/`
+
+	request := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(body))
+	request.Header.Set("Content-Type", "text/plain")
+	recorder := httptest.NewRecorder()
+
+	handler := PostHandler(st, "http://localhost:8080", auth)
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		recorder.Body.Reset()
+		handler(recorder, request)
+	}
+
+}
