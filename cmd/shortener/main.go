@@ -10,7 +10,7 @@ import (
 
 func main() {
 
-	cfg, err := config.Init()
+	cfg, err := config.New()
 	if err != nil {
 		log.Fatalf("Cannot initialize config: %v\n", err)
 	}

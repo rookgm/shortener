@@ -3,6 +3,7 @@ package config
 import (
 	"flag"
 	"os"
+	"sync"
 )
 
 type Config struct {
@@ -20,53 +21,61 @@ const (
 	defaultStoragePath = "/tmp/short-url-db.json"
 )
 
-func Init() (*Config, error) {
-	cfg := Config{}
+var (
+	once      sync.Once
+	singleton *Config
+)
 
-	// init flags
-	flag.StringVar(&cfg.ServerAddr, "a", "", "server address")
-	flag.StringVar(&cfg.BaseURL, "b", "", "base url")
-	flag.StringVar(&cfg.LogLevel, "l", "", "log level")
-	flag.StringVar(&cfg.StoragePath, "f", "", "storage path")
-	flag.StringVar(&cfg.DataBaseDSN, "d", "", "database address")
+func New() (*Config, error) {
+	once.Do(func() {
+		cfg := Config{}
 
-	flag.Parse()
+		// init flags
+		flag.StringVar(&cfg.ServerAddr, "a", "", "server address")
+		flag.StringVar(&cfg.BaseURL, "b", "", "base url")
+		flag.StringVar(&cfg.LogLevel, "l", "", "log level")
+		flag.StringVar(&cfg.StoragePath, "f", "", "storage path")
+		flag.StringVar(&cfg.DataBaseDSN, "d", "", "database address")
 
-	if serverAddrEnv := os.Getenv("SERVER_ADDRESS"); serverAddrEnv != "" {
-		cfg.ServerAddr = serverAddrEnv
-	}
+		flag.Parse()
 
-	if cfg.ServerAddr == "" {
-		cfg.ServerAddr = defaultServerAddr
-	}
+		if serverAddrEnv := os.Getenv("SERVER_ADDRESS"); serverAddrEnv != "" {
+			cfg.ServerAddr = serverAddrEnv
+		}
 
-	if baseURLEnv := os.Getenv("BASE_URL"); baseURLEnv != "" {
-		cfg.BaseURL = baseURLEnv
-	}
+		if cfg.ServerAddr == "" {
+			cfg.ServerAddr = defaultServerAddr
+		}
 
-	if cfg.BaseURL == "" {
-		cfg.BaseURL = defaultBaseURL
-	}
+		if baseURLEnv := os.Getenv("BASE_URL"); baseURLEnv != "" {
+			cfg.BaseURL = baseURLEnv
+		}
 
-	if logLevelEnv := os.Getenv("LOG_LEVEL"); logLevelEnv != "" {
-		cfg.LogLevel = logLevelEnv
-	}
+		if cfg.BaseURL == "" {
+			cfg.BaseURL = defaultBaseURL
+		}
 
-	if cfg.LogLevel == "" {
-		cfg.LogLevel = defaultLogLevel
-	}
+		if logLevelEnv := os.Getenv("LOG_LEVEL"); logLevelEnv != "" {
+			cfg.LogLevel = logLevelEnv
+		}
 
-	if storagePathEnv := os.Getenv("FILE_STORAGE_PATH"); storagePathEnv != "" {
-		cfg.StoragePath = storagePathEnv
-	}
+		if cfg.LogLevel == "" {
+			cfg.LogLevel = defaultLogLevel
+		}
 
-	if cfg.StoragePath == "" {
-		cfg.StoragePath = defaultStoragePath
-	}
+		if storagePathEnv := os.Getenv("FILE_STORAGE_PATH"); storagePathEnv != "" {
+			cfg.StoragePath = storagePathEnv
+		}
 
-	if dataBaseDSNEnv := os.Getenv("DATABASE_DSN"); dataBaseDSNEnv != "" {
-		cfg.DataBaseDSN = dataBaseDSNEnv
-	}
+		if cfg.StoragePath == "" {
+			cfg.StoragePath = defaultStoragePath
+		}
 
-	return &cfg, nil
+		if dataBaseDSNEnv := os.Getenv("DATABASE_DSN"); dataBaseDSNEnv != "" {
+			cfg.DataBaseDSN = dataBaseDSNEnv
+		}
+		singleton = &cfg
+	})
+
+	return singleton, nil
 }
