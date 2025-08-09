@@ -12,6 +12,7 @@ type Config struct {
 	LogLevel    string
 	StoragePath string
 	DataBaseDSN string
+	DebugMode   bool
 }
 
 const (
@@ -19,6 +20,7 @@ const (
 	defaultBaseURL     = "http://localhost:8080/"
 	defaultLogLevel    = "debug"
 	defaultStoragePath = "/tmp/short-url-db.json"
+	defaultDebugMode   = false
 )
 
 var (
@@ -36,6 +38,7 @@ func New() (*Config, error) {
 		flag.StringVar(&cfg.LogLevel, "l", "", "log level")
 		flag.StringVar(&cfg.StoragePath, "f", "", "storage path")
 		flag.StringVar(&cfg.DataBaseDSN, "d", "", "database address")
+		flag.BoolVar(&cfg.DebugMode, "debug", defaultDebugMode, "enable debug mode")
 
 		flag.Parse()
 
@@ -73,6 +76,10 @@ func New() (*Config, error) {
 
 		if dataBaseDSNEnv := os.Getenv("DATABASE_DSN"); dataBaseDSNEnv != "" {
 			cfg.DataBaseDSN = dataBaseDSNEnv
+		}
+
+		if debugModeEnv := os.Getenv("DEBUG_MODE"); debugModeEnv != "" {
+			cfg.DebugMode = debugModeEnv == "true"
 		}
 		singleton = &cfg
 	})

@@ -15,6 +15,7 @@ import (
 	"github.com/rookgm/shortener/internal/storage"
 	"go.uber.org/zap"
 	"net/http"
+	"net/http/pprof"
 	"time"
 )
 
@@ -125,6 +126,11 @@ func Run(config *config.Config) error {
 		router.Post("/api/shorten/batch", handlers.PostBatchHandler(st, config.BaseURL))
 		router.Get("/api/user/urls", handlers.GetUserUrlsHandler(st, config.BaseURL, token))
 		router.Delete("/api/user/urls", handlers.DeleteUserUrlsHandler(st, token, fanInCh))
+
+		if config.DebugMode {
+			r.HandleFunc("/debug/pprof/*", pprof.Index)
+			r.Get("/debug/pprof/profile", pprof.Profile)
+		}
 	})
 
 	return http.ListenAndServe(config.ServerAddr, router)
