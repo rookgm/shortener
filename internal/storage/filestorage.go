@@ -37,18 +37,6 @@ func NewFileStorage(filename string) *FileStorage {
 	}
 }
 
-// isURLExist checks existing url
-func (fs *FileStorage) isURLExist(url string) bool {
-	// does the url exist?
-	for _, v := range fs.m {
-		if strings.Compare(v, url) == 0 {
-			// url exist
-			return true
-		}
-	}
-	return false
-}
-
 // LoadFromFile is load storage from file
 func (fs *FileStorage) LoadFromFile() error {
 	fs.mtx.Lock()
@@ -184,4 +172,16 @@ func (fs *FileStorage) GetUserURLsCtx(ctx context.Context, userID string) ([]mod
 func (fs *FileStorage) DeleteUserURLsCtx(ctx context.Context, userID string, aliases []string) error {
 	// TODO
 	return nil
+}
+
+// isURLExist checks existing url
+func (fs *FileStorage) isURLExist(url string) bool {
+	// does the url exist?
+	for _, v := range fs.m {
+		if strings.Compare(v, url) == 0 {
+			// url exist
+			return true
+		}
+	}
+	return false
 }

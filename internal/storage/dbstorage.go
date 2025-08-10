@@ -19,13 +19,13 @@ type DBStorage struct {
 	db *db.DataBase
 }
 
-// LoadFromFile does nothing
-func (d *DBStorage) LoadFromFile() error { return nil }
-
 // NewDBStorage creates a new storage on opened database
 func NewDBStorage(db *db.DataBase) (*DBStorage, error) {
 	return &DBStorage{db: db}, nil
 }
+
+// LoadFromFile does nothing
+func (d *DBStorage) LoadFromFile() error { return nil }
 
 // StoreURLCtx add url alias and original url to storage
 func (d *DBStorage) StoreURLCtx(ctx context.Context, url models.ShrURL) error {

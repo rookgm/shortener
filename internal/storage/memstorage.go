@@ -29,18 +29,6 @@ func (ms *MemStorage) LoadFromFile() error {
 	return nil
 }
 
-// isURLExist checks existing url
-func (ms *MemStorage) isURLExist(url string) bool {
-	// does the url exist?
-	for _, v := range ms.m {
-		if strings.Compare(v, url) == 0 {
-			// url exist
-			return true
-		}
-	}
-	return false
-}
-
 // StoreURLCtx is store ShrURL
 func (ms *MemStorage) StoreURLCtx(ctx context.Context, url models.ShrURL) error {
 	ms.mu.Lock()
@@ -113,4 +101,16 @@ func (ms *MemStorage) GetUserURLsCtx(ctx context.Context, userID string) ([]mode
 func (ms *MemStorage) DeleteUserURLsCtx(ctx context.Context, userID string, aliases []string) error {
 	// TODO
 	return nil
+}
+
+// isURLExist checks existing url
+func (ms *MemStorage) isURLExist(url string) bool {
+	// does the url exist?
+	for _, v := range ms.m {
+		if strings.Compare(v, url) == 0 {
+			// url exist
+			return true
+		}
+	}
+	return false
 }
