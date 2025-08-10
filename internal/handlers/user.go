@@ -2,14 +2,15 @@ package handlers
 
 import (
 	"encoding/json"
+	"net/http"
+	"net/url"
+	"strings"
+
 	"github.com/rookgm/shortener/internal/client"
 	"github.com/rookgm/shortener/internal/logger"
 	"github.com/rookgm/shortener/internal/models"
 	"github.com/rookgm/shortener/internal/storage"
 	"go.uber.org/zap"
-	"net/http"
-	"net/url"
-	"strings"
 )
 
 // UserURL represent user's url(short and original)

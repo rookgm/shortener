@@ -4,6 +4,10 @@ import (
 	"context"
 	"encoding/hex"
 	"errors"
+	"net/http"
+	"net/http/pprof"
+	"time"
+
 	"github.com/go-chi/chi/v5"
 	"github.com/rookgm/shortener/config"
 	"github.com/rookgm/shortener/internal/client"
@@ -14,9 +18,6 @@ import (
 	"github.com/rookgm/shortener/internal/models"
 	"github.com/rookgm/shortener/internal/storage"
 	"go.uber.org/zap"
-	"net/http"
-	"net/http/pprof"
-	"time"
 )
 
 const authTokenKey = "f53ac685bbceebd75043e6be2e06ee07"

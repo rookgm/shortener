@@ -4,18 +4,19 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"github.com/go-chi/chi/v5"
-	"github.com/rookgm/shortener/internal/client"
-	"github.com/rookgm/shortener/internal/models"
-	"github.com/rookgm/shortener/internal/storage"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/rookgm/shortener/internal/client"
+	"github.com/rookgm/shortener/internal/models"
+	"github.com/rookgm/shortener/internal/storage"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestGetHandler(t *testing.T) {

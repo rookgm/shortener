@@ -2,12 +2,13 @@ package storage
 
 import (
 	"context"
-	"github.com/rookgm/shortener/internal/models"
-	"github.com/rookgm/shortener/internal/recorder"
 	"os"
 	"strconv"
 	"strings"
 	"sync"
+
+	"github.com/rookgm/shortener/internal/models"
+	"github.com/rookgm/shortener/internal/recorder"
 )
 
 // FileStorage presents storage on file

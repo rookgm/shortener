@@ -1,11 +1,12 @@
 package middleware
 
 import (
+	"net/http"
+	"time"
+
 	"github.com/rookgm/shortener/internal/client"
 	"github.com/rookgm/shortener/internal/logger"
 	"go.uber.org/zap"
-	"net/http"
-	"time"
 )
 
 const authCookieName = "auth_shortener"

@@ -2,9 +2,10 @@ package storage
 
 import (
 	"context"
-	"github.com/rookgm/shortener/internal/models"
 	"strings"
 	"sync"
+
+	"github.com/rookgm/shortener/internal/models"
 )
 
 // MemStorage is storage based on gomap
