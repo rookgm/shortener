@@ -22,6 +22,7 @@ type authToken struct {
 	secretKey []byte
 }
 
+// NewAuthToken creates a new token
 func NewAuthToken(key []byte) AuthToken {
 	return &authToken{secretKey: key}
 }

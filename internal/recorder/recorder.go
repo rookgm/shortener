@@ -6,23 +6,28 @@ import (
 	"io"
 )
 
+// Record is record entity
 type Record struct {
 	UUID        string `json:"uuid"`
 	ShortURL    string `json:"short_url"`
 	OriginalURL string `json:"original_url"`
 }
 
+// Recorder is recorder
 type Recorder struct{}
 
+// NewRecorder creates new Recorder
 func NewRecorder() (*Recorder, error) {
 	return &Recorder{}, nil
 }
 
+// WriteRecord writes record
 func (r *Recorder) WriteRecord(writer io.Writer, rec *Record) error {
 	encoder := json.NewEncoder(writer)
 	return encoder.Encode(&rec)
 }
 
+// ReadAllRecords reading all records
 func (r *Recorder) ReadAllRecords(reader io.Reader) (map[string]string, error) {
 
 	m := make(map[string]string)

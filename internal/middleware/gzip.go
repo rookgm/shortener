@@ -8,9 +8,10 @@ import (
 	"sync"
 )
 
-// valid content types
+// validContentTypes is valid content types.
 var validContentTypes = []string{"application/json", "text/html"}
 
+// ContentTypeChecker is content type checker.
 type ContentTypeChecker struct {
 	m    map[string]struct{}
 	once sync.Once
@@ -44,10 +45,12 @@ func newCompressWriter(w http.ResponseWriter) *compressWriter {
 	}
 }
 
+// Header returns header of writer
 func (c *compressWriter) Header() http.Header {
 	return c.w.Header()
 }
 
+// Write writes data
 func (c *compressWriter) Write(p []byte) (int, error) {
 	// only gzip
 	if strings.Compare(c.Header().Get("Content-Encoding"), "gzip") == 0 {
@@ -56,6 +59,7 @@ func (c *compressWriter) Write(p []byte) (int, error) {
 	return c.w.Write(p)
 }
 
+// WriteHeader writes header data
 func (c *compressWriter) WriteHeader(statusCode int) {
 	// check content type
 	if ctChecker.IsValid(c.Header().Get("Content-Type")) {
@@ -65,6 +69,7 @@ func (c *compressWriter) WriteHeader(statusCode int) {
 	c.w.WriteHeader(statusCode)
 }
 
+// Close closes writer
 func (c *compressWriter) Close() error {
 	// only gzip
 	if strings.Compare(c.Header().Get("Content-Encoding"), "gzip") == 0 {
@@ -90,10 +95,12 @@ func newCompressReader(r io.ReadCloser) (*compressReader, error) {
 	}, nil
 }
 
+// Read reading data
 func (c compressReader) Read(p []byte) (n int, err error) {
 	return c.zr.Read(p)
 }
 
+// Close closes reader
 func (c *compressReader) Close() error {
 	if err := c.r.Close(); err != nil {
 		return err
@@ -101,6 +108,7 @@ func (c *compressReader) Close() error {
 	return c.zr.Close()
 }
 
+// GzipMiddleware perform compress using gzip
 func GzipMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		curw := w

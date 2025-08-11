@@ -22,6 +22,7 @@ import (
 
 const authTokenKey = "f53ac685bbceebd75043e6be2e06ee07"
 
+// Run is prepare server and runs it
 func Run(config *config.Config) error {
 	if config == nil {
 		return errors.New("config is nil")

@@ -7,6 +7,7 @@ import (
 	"github.com/rookgm/shortener/internal/models"
 )
 
+// storage errors
 var (
 	ErrURLNotFound   = errors.New("url not found")
 	ErrURLExists     = errors.New("url exists")
@@ -14,6 +15,7 @@ var (
 	ErrUserNotFound  = errors.New("user not found")
 )
 
+// URLStorage is interface for interacting with storage-related data
 type URLStorage interface {
 	StoreURLCtx(ctx context.Context, url models.ShrURL) error
 	StoreBatchURLCtx(ctx context.Context, urls []models.ShrURL) error
