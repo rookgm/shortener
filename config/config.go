@@ -18,11 +18,16 @@ type Config struct {
 
 // config default values
 const (
-	defaultServerAddr  = ":8080"
-	defaultBaseURL     = "http://localhost:8080/"
-	defaultLogLevel    = "debug"
+	// base server address
+	defaultServerAddr = ":8080"
+	// base address URL of shortened URLs
+	defaultBaseURL = "http://localhost:8080/"
+	// default logging level
+	defaultLogLevel = "debug"
+	// file storage path name
 	defaultStoragePath = "/tmp/short-url-db.json"
-	defaultDebugMode   = false
+	// default debug mode
+	defaultDebugMode = false
 )
 
 // singleton

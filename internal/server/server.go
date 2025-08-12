@@ -22,7 +22,8 @@ import (
 
 const authTokenKey = "f53ac685bbceebd75043e6be2e06ee07"
 
-// Run is prepare server and runs it
+// Run is prepare server and runs it. Choose type of storage and create it.
+// Launch delete worker.Setup main routers.
 func Run(config *config.Config) error {
 	if config == nil {
 		return errors.New("config is nil")
@@ -35,6 +36,7 @@ func Run(config *config.Config) error {
 	var st storage.URLStorage
 	var err error
 
+	// detect type of storage
 	if config.DataBaseDSN != "" {
 		// open shortener db
 		sdb, err = db.OpenCtx(ctx, config.DataBaseDSN)
