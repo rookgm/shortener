@@ -4,6 +4,11 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+
 	"github.com/golang/mock/gomock"
 	"github.com/google/go-cmp/cmp"
 	"github.com/rookgm/shortener/internal/client"
@@ -13,10 +18,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
-	"io"
-	"net/http"
-	"net/http/httptest"
-	"testing"
 )
 
 func TestGetUserUrlsHandler(t *testing.T) {

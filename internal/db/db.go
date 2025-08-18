@@ -3,9 +3,11 @@ package db
 import (
 	"context"
 	"database/sql"
+
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
+// DataBase contains sql.DB
 type DataBase struct {
 	DB *sql.DB
 }

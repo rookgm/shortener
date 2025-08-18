@@ -1,11 +1,13 @@
 package main
 
 import (
+	"log"
+
+	"github.com/rookgm/shortener/internal/server"
+
 	"github.com/rookgm/shortener/config"
 	"github.com/rookgm/shortener/internal/logger"
-	"github.com/rookgm/shortener/internal/server"
 	"go.uber.org/zap"
-	"log"
 )
 
 func main() {

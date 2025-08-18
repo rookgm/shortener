@@ -1,15 +1,17 @@
 package middleware
 
 import (
+	"net/http"
+	"time"
+
 	"github.com/rookgm/shortener/internal/client"
 	"github.com/rookgm/shortener/internal/logger"
 	"go.uber.org/zap"
-	"net/http"
-	"time"
 )
 
 const authCookieName = "auth_shortener"
 
+// Auth performs authorization
 func Auth(authToken client.AuthToken, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		logger.Log.Debug("try get auth cookie")

@@ -1,11 +1,13 @@
 package logger
 
 import (
-	"go.uber.org/zap"
 	"net/http"
 	"time"
+
+	"go.uber.org/zap"
 )
 
+// Log is no-op Logger
 var Log *zap.Logger = zap.NewNop()
 
 type (
@@ -20,6 +22,7 @@ type (
 	}
 )
 
+// Initialize init logger
 func Initialize(level string) error {
 	lvl, err := zap.ParseAtomicLevel(level)
 	if err != nil {
@@ -37,17 +40,20 @@ func Initialize(level string) error {
 	return nil
 }
 
+// Write writes data
 func (rw *responseWrite) Write(b []byte) (int, error) {
 	size, err := rw.ResponseWriter.Write(b)
 	rw.responseData.size += size
 	return size, err
 }
 
+// WriteHeader writes header with status code
 func (rw *responseWrite) WriteHeader(statusCode int) {
 	rw.ResponseWriter.WriteHeader(statusCode)
 	rw.responseData.status = statusCode
 }
 
+// Middleware is middleware logger
 func Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
