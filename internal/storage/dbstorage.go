@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5/pgconn"
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -18,13 +19,13 @@ type DBStorage struct {
 	db *db.DataBase
 }
 
-// LoadFromFile does nothing
-func (d *DBStorage) LoadFromFile() error { return nil }
-
 // NewDBStorage creates a new storage on opened database
 func NewDBStorage(db *db.DataBase) (*DBStorage, error) {
 	return &DBStorage{db: db}, nil
 }
+
+// LoadFromFile does nothing
+func (d *DBStorage) LoadFromFile() error { return nil }
 
 // StoreURLCtx add url alias and original url to storage
 func (d *DBStorage) StoreURLCtx(ctx context.Context, url models.ShrURL) error {
@@ -145,6 +146,7 @@ func (d *DBStorage) GetUserURLsCtx(ctx context.Context, userID string) ([]models
 	return userURLs, nil
 }
 
+// DeleteUserURLsCtx deletes user URLs
 func (d *DBStorage) DeleteUserURLsCtx(ctx context.Context, userID string, aliases []string) error {
 	tx, err := d.db.DB.Begin()
 	if err != nil {

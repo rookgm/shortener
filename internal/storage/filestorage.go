@@ -2,12 +2,13 @@ package storage
 
 import (
 	"context"
-	"github.com/rookgm/shortener/internal/models"
-	"github.com/rookgm/shortener/internal/recorder"
 	"os"
 	"strconv"
 	"strings"
 	"sync"
+
+	"github.com/rookgm/shortener/internal/models"
+	"github.com/rookgm/shortener/internal/recorder"
 )
 
 // FileStorage presents storage on file
@@ -34,18 +35,6 @@ func NewFileStorage(filename string) *FileStorage {
 		fileName: filename,
 		rec:      newRec,
 	}
-}
-
-// isURLExist checks existing url
-func (fs *FileStorage) isURLExist(url string) bool {
-	// does the url exist?
-	for _, v := range fs.m {
-		if strings.Compare(v, url) == 0 {
-			// url exist
-			return true
-		}
-	}
-	return false
 }
 
 // LoadFromFile is load storage from file
@@ -180,7 +169,20 @@ func (fs *FileStorage) GetUserURLsCtx(ctx context.Context, userID string) ([]mod
 	return urls, nil
 }
 
+// DeleteUserURLsCtx deletes user URLs
 func (fs *FileStorage) DeleteUserURLsCtx(ctx context.Context, userID string, aliases []string) error {
 	// TODO
 	return nil
+}
+
+// isURLExist checks existing url
+func (fs *FileStorage) isURLExist(url string) bool {
+	// does the url exist?
+	for _, v := range fs.m {
+		if strings.Compare(v, url) == 0 {
+			// url exist
+			return true
+		}
+	}
+	return false
 }

@@ -1,42 +1,39 @@
+// Package handlers contains the main handlers for processing URLs.
 package handlers
 
 import (
 	"encoding/json"
 	"errors"
-	"github.com/go-chi/chi/v5"
 	"github.com/rookgm/shortener/internal/client"
+	"io"
+	"net/http"
+	"net/url"
+	"strings"
+
+	"github.com/go-chi/chi/v5"
 	"github.com/rookgm/shortener/internal/db"
 	"github.com/rookgm/shortener/internal/logger"
 	"github.com/rookgm/shortener/internal/models"
 	"github.com/rookgm/shortener/internal/random"
 	"github.com/rookgm/shortener/internal/storage"
 	"go.uber.org/zap"
-	"io"
-	"net/http"
-	"net/url"
-	"strings"
 )
 
-func GetHandler(store storage.URLStorage) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		// get url alias from path
-		alias := chi.URLParam(r, "id")
-
-		rurl, err := store.GetURLCtx(r.Context(), alias)
-		if err != nil {
-			http.Error(w, "bad request", http.StatusBadRequest)
-			return
-		}
-
-		if rurl.Deleted {
-			w.WriteHeader(http.StatusGone)
-			return
-		}
-
-		http.Redirect(w, r, rurl.URL, http.StatusTemporaryRedirect)
-	}
-}
-
+// PostHandler accept the URL as text/plain and returns shortened URL as text/plain.
+//
+// Request
+//
+//	POST / HTTP/1.1
+//	Host: localhost:8080
+//	Content-Type: text/plain
+//	https://practicum.yandex.ru/
+//
+// Response
+//
+//	HTTP/1.1 201 Created
+//	Content-Type: text/plain
+//	Content-Length: 30
+//	http://localhost:8080/EwHXdJfB
 func PostHandler(store storage.URLStorage, baseURL string, token client.AuthToken) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// get url
@@ -85,13 +82,66 @@ func PostHandler(store storage.URLStorage, baseURL string, token client.AuthToke
 	}
 }
 
+// GetHandler function accepts short URL from path /{id}, id is shortened url.
+// if success returns 307 code and original URL at Location header.
+//
+// Request
+// GET /EwHXdJfB HTTP/1.1
+// Host: localhost:8080
+// Content-Type: text/plain
+//
+// Response
+// HTTP/1.1 307 Temporary Redirect
+// Location: https://practicum.yandex.ru/
+func GetHandler(store storage.URLStorage) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// get url alias from path
+		alias := chi.URLParam(r, "id")
+
+		rurl, err := store.GetURLCtx(r.Context(), alias)
+		if err != nil {
+			http.Error(w, "bad request", http.StatusBadRequest)
+			return
+		}
+
+		if rurl.Deleted {
+			w.WriteHeader(http.StatusGone)
+			return
+		}
+
+		http.Redirect(w, r, rurl.URL, http.StatusTemporaryRedirect)
+	}
+}
+
+// APIShortenReq represents request in JSON format.
 type APIShortenReq struct {
+	// URL is original URL.
 	URL string `json:"url"`
 }
+
+// APIShortenResp represents response in JSON format.
 type APIShortenResp struct {
+	// Result is shortened URL.
 	Result string `json:"result"`
 }
 
+// APIShortenHandler accepts JSON {"url":"<some_url>"} and returns {"result":"<short_url>"}
+//
+// Request
+//
+//	POST http://localhost:8080/api/shorten HTTP/1.1
+//	Host: localhost:8080
+//	Content-Type: application/json
+//
+//	{ "url": "https://practicum.yandex.ru" }
+//
+// Response
+//
+//	HTTP/1.1 201 OK
+//	Content-Type: application/json
+//	Content-Length: 30
+//
+//	{ "result": "http://localhost:8080/EwHXdJfB" }
 func APIShortenHandler(store storage.URLStorage, baseURL string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		logger.Log.Debug("check Content-Type")
@@ -157,6 +207,7 @@ func APIShortenHandler(store storage.URLStorage, baseURL string) http.HandlerFun
 	}
 }
 
+// PingHandler verifies a connection to the database.
 func PingHandler(sdb *db.DataBase) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := sdb.PingCtx(r.Context()); err != nil {
@@ -169,16 +220,21 @@ func PingHandler(sdb *db.DataBase) http.HandlerFunc {
 	}
 }
 
+// BatchRequest contains URL for batch processing.
 type BatchRequest struct {
+	// CorrelationID is string id.
 	CorrelationID string `json:"correlation_id"`
 	OriginalURL   string `json:"original_url"`
 }
 
+// BatchResponse contains shortened URL as bath result.
 type BatchResponse struct {
+	// CorrelationID is string id from request.
 	CorrelationID string `json:"correlation_id"`
 	ShortURL      string `json:"short_url"`
 }
 
+// PostBatchHandler performs batch processing of original URLs and returns shortened URLs
 func PostBatchHandler(store storage.URLStorage, baseURL string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		logger.Log.Debug("check Content-Type")

@@ -4,18 +4,19 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"github.com/go-chi/chi/v5"
-	"github.com/rookgm/shortener/internal/client"
-	"github.com/rookgm/shortener/internal/models"
-	"github.com/rookgm/shortener/internal/storage"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/rookgm/shortener/internal/client"
+	"github.com/rookgm/shortener/internal/models"
+	"github.com/rookgm/shortener/internal/storage"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestGetHandler(t *testing.T) {
@@ -225,5 +226,78 @@ func TestApiShortenHandler(t *testing.T) {
 
 			assert.True(t, strings.HasPrefix(resp.Result, test.want.body.Result), "body result is not equal")
 		})
+	}
+}
+
+func BenchmarkPostHandler(b *testing.B) {
+	memst := storage.NewMemStorage()
+
+	auth := client.NewAuthToken([]byte("secretkey"))
+	body := `http://practicum.yandex.ru/`
+
+	request := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(body))
+	request.Header.Set("Content-Type", "text/plain")
+	recorder := httptest.NewRecorder()
+
+	handler := PostHandler(memst, "http://localhost:8080", auth)
+
+	//cfg, err := config.New()
+	//if err != nil {
+	//	b.Errorf("error create new config")
+	//}
+	//
+	//sdb, err := db.OpenCtx(context.Background(), cfg.DataBaseDSN)
+	//if err != nil {
+	//	b.Errorf("can't open db")
+	//}
+	//defer sdb.Close()
+	//
+	//dbst, err := storage.NewDBStorage(sdb)
+	//if err != nil {
+	//	b.Errorf("error create db storage")
+	//}
+
+	b.ResetTimer()
+	b.Run("storage_on_memory", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			recorder.Body.Reset()
+			handler(recorder, request)
+		}
+	})
+
+	//handler = PostHandler(dbst, "http://localhost:8080", auth)
+	//
+	//b.Run("db storage", func(b *testing.B) {
+	//	for i := 0; i < b.N; i++ {
+	//		recorder.Body.Reset()
+	//		handler(recorder, request)
+	//	}
+	//})
+
+}
+
+func BenchmarkGetHandler(b *testing.B) {
+	st := storage.NewMemStorage()
+
+	url := models.ShrURL{
+		Alias: "EwHXdJfB",
+		URL:   "https://practicum.yandex.ru/",
+	}
+
+	err := st.StoreURLCtx(context.Background(), url)
+	if err != nil {
+		b.Errorf("error store url")
+	}
+
+	router := chi.NewRouter()
+	router.Get("/{id}", GetHandler(st))
+
+	request := httptest.NewRequest(http.MethodGet, "/"+url.Alias, nil)
+	w := httptest.NewRecorder()
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		w.Body.Reset()
+		router.ServeHTTP(w, request)
 	}
 }

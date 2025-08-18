@@ -2,9 +2,10 @@ package storage
 
 import (
 	"context"
-	"github.com/rookgm/shortener/internal/models"
 	"strings"
 	"sync"
+
+	"github.com/rookgm/shortener/internal/models"
 )
 
 // MemStorage is storage based on gomap
@@ -23,21 +24,10 @@ func NewMemStorage() *MemStorage {
 	}
 }
 
+// LoadFromFile is no-op function
 func (ms *MemStorage) LoadFromFile() error {
 	// nothing
 	return nil
-}
-
-// isURLExist checks existing url
-func (ms *MemStorage) isURLExist(url string) bool {
-	// does the url exist?
-	for _, v := range ms.m {
-		if strings.Compare(v, url) == 0 {
-			// url exist
-			return true
-		}
-	}
-	return false
 }
 
 // StoreURLCtx is store ShrURL
@@ -109,7 +99,20 @@ func (ms *MemStorage) GetUserURLsCtx(ctx context.Context, userID string) ([]mode
 	return urls, nil
 }
 
+// DeleteUserURLsCtx deletes user URLs
 func (ms *MemStorage) DeleteUserURLsCtx(ctx context.Context, userID string, aliases []string) error {
 	// TODO
 	return nil
+}
+
+// isURLExist checks existing url
+func (ms *MemStorage) isURLExist(url string) bool {
+	// does the url exist?
+	for _, v := range ms.m {
+		if strings.Compare(v, url) == 0 {
+			// url exist
+			return true
+		}
+	}
+	return false
 }

@@ -3,16 +3,23 @@ package storage
 import (
 	"context"
 	"errors"
+
 	"github.com/rookgm/shortener/internal/models"
 )
 
+// storage errors
 var (
-	ErrURLNotFound   = errors.New("url not found")
-	ErrURLExists     = errors.New("url exists")
+	// ErrURLNotFound is an error when URL is not found in the storage
+	ErrURLNotFound = errors.New("url not found")
+	// ErrURLExists is an error when URL is already exist in the storage
+	ErrURLExists = errors.New("url exists")
+	// ErrAliasNotFound is an error when shortened URL is not found in the storage
 	ErrAliasNotFound = errors.New("alias not found")
-	ErrUserNotFound  = errors.New("user not found")
+	// ErrUserNotFound is an error when user's URL is not found in the storage
+	ErrUserNotFound = errors.New("user not found")
 )
 
+// URLStorage is interface for interacting with storage-related data
 type URLStorage interface {
 	StoreURLCtx(ctx context.Context, url models.ShrURL) error
 	StoreBatchURLCtx(ctx context.Context, urls []models.ShrURL) error

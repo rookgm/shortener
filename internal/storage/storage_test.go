@@ -2,10 +2,11 @@ package storage
 
 import (
 	"context"
-	"github.com/rookgm/shortener/internal/models"
-	"github.com/stretchr/testify/assert"
 	"os"
 	"testing"
+
+	"github.com/rookgm/shortener/internal/models"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestStorage_SetAndGet(t *testing.T) {

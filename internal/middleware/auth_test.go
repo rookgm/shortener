@@ -1,11 +1,12 @@
 package middleware
 
 import (
-	"github.com/rookgm/shortener/internal/client"
-	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/rookgm/shortener/internal/client"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestAuth(t *testing.T) {

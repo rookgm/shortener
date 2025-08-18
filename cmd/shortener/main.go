@@ -1,16 +1,18 @@
 package main
 
 import (
+	"log"
+
+	"github.com/rookgm/shortener/internal/server"
+
 	"github.com/rookgm/shortener/config"
 	"github.com/rookgm/shortener/internal/logger"
-	"github.com/rookgm/shortener/internal/server"
 	"go.uber.org/zap"
-	"log"
 )
 
 func main() {
 
-	cfg, err := config.Init()
+	cfg, err := config.New()
 	if err != nil {
 		log.Fatalf("Cannot initialize config: %v\n", err)
 	}
