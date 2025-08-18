@@ -24,6 +24,7 @@ func NewMemStorage() *MemStorage {
 	}
 }
 
+// LoadFromFile is no-op function
 func (ms *MemStorage) LoadFromFile() error {
 	// nothing
 	return nil
@@ -98,6 +99,7 @@ func (ms *MemStorage) GetUserURLsCtx(ctx context.Context, userID string) ([]mode
 	return urls, nil
 }
 
+// DeleteUserURLsCtx deletes user URLs
 func (ms *MemStorage) DeleteUserURLsCtx(ctx context.Context, userID string, aliases []string) error {
 	// TODO
 	return nil

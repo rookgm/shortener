@@ -146,6 +146,7 @@ func (d *DBStorage) GetUserURLsCtx(ctx context.Context, userID string) ([]models
 	return userURLs, nil
 }
 
+// DeleteUserURLsCtx deletes user URLs
 func (d *DBStorage) DeleteUserURLsCtx(ctx context.Context, userID string, aliases []string) error {
 	tx, err := d.db.DB.Begin()
 	if err != nil {

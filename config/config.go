@@ -6,6 +6,7 @@ import (
 	"sync"
 )
 
+// Config contains configuration information.
 type Config struct {
 	ServerAddr  string
 	BaseURL     string
@@ -15,19 +16,27 @@ type Config struct {
 	DebugMode   bool
 }
 
+// config default values
 const (
-	defaultServerAddr  = ":8080"
-	defaultBaseURL     = "http://localhost:8080/"
-	defaultLogLevel    = "debug"
+	// base server address
+	defaultServerAddr = ":8080"
+	// base address URL of shortened URLs
+	defaultBaseURL = "http://localhost:8080/"
+	// default logging level
+	defaultLogLevel = "debug"
+	// file storage path name
 	defaultStoragePath = "/tmp/short-url-db.json"
-	defaultDebugMode   = false
+	// default debug mode
+	defaultDebugMode = false
 )
 
+// singleton
 var (
 	once      sync.Once
 	singleton *Config
 )
 
+// New creates a single instance of config
 func New() (*Config, error) {
 	once.Do(func() {
 		cfg := Config{}
