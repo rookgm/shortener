@@ -1,3 +1,5 @@
+// Package osexit defines an Analyzer that checks direct
+// call os.Exit function in main function of package main
 package osexit
 
 import (
@@ -6,6 +8,7 @@ import (
 	"strings"
 )
 
+// Analyzer is osexit analyzer
 var Analyzer = &analysis.Analyzer{
 	Name: "osexit",
 	Doc:  "check for call os.Exit in main function",
