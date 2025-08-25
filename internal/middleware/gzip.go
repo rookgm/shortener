@@ -11,7 +11,7 @@ import (
 // validContentTypes is valid content types.
 var validContentTypes = []string{"application/json", "text/html"}
 
-// ContentTypeChecker is content type checker.
+// ContentTypeChecker is content type osexit.
 type ContentTypeChecker struct {
 	m    map[string]struct{}
 	once sync.Once
@@ -30,7 +30,7 @@ func (ch *ContentTypeChecker) IsValid(s string) bool {
 	return ok
 }
 
-// content type checker
+// content type osexit
 var ctChecker ContentTypeChecker
 
 type compressWriter struct {
