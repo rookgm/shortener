@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/pprof"
+	"os"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -22,11 +23,26 @@ import (
 
 const authTokenKey = "f53ac685bbceebd75043e6be2e06ee07"
 
+const (
+	serverCertFileName = "cert/server.crt"
+	serverKeyFileName  = "cert/server.key"
+)
+
 // Run is prepare server and runs it. Choose type of storage and create it.
 // Launch delete worker.Setup main routers.
 func Run(config *config.Config) error {
 	if config == nil {
 		return errors.New("config is nil")
+	}
+
+	// check existing server's key files
+	if _, err := os.Stat(serverCertFileName); errors.Is(err, os.ErrNotExist) {
+		logger.Log.Error("server cert file is not exist")
+		return err
+	}
+	if _, err := os.Stat(serverKeyFileName); errors.Is(err, os.ErrNotExist) {
+		logger.Log.Error("server key file is not exist")
+		return err
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -136,6 +152,10 @@ func Run(config *config.Config) error {
 			r.Get("/debug/pprof/profile", pprof.Profile)
 		}
 	})
+
+	if config.EnableHTTPS {
+		return http.ListenAndServeTLS(config.ServerAddr, serverCertFileName, serverKeyFileName, router)
+	}
 
 	return http.ListenAndServe(config.ServerAddr, router)
 }
