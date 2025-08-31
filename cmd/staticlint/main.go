@@ -65,7 +65,7 @@ func main() {
 		printf.Analyzer,
 		// check for possible unintended shadowing of variables
 		shadow.Analyzer,
-		// checks struct field tags are well formed
+		// checks struct field tags are well-formed
 		structtag.Analyzer,
 	}
 
