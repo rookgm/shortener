@@ -34,15 +34,17 @@ func Run(config *config.Config) error {
 	if config == nil {
 		return errors.New("config is nil")
 	}
-
-	// check existing server's key files
-	if _, err := os.Stat(serverCertFileName); errors.Is(err, os.ErrNotExist) {
-		logger.Log.Error("server cert file is not exist")
-		return err
-	}
-	if _, err := os.Stat(serverKeyFileName); errors.Is(err, os.ErrNotExist) {
-		logger.Log.Error("server key file is not exist")
-		return err
+	// if https is enabled, then loads cert
+	if config.EnableHTTPS {
+		// check existing server's key files
+		if _, err := os.Stat(serverCertFileName); errors.Is(err, os.ErrNotExist) {
+			logger.Log.Error("server cert file is not exist")
+			return err
+		}
+		if _, err := os.Stat(serverKeyFileName); errors.Is(err, os.ErrNotExist) {
+			logger.Log.Error("server key file is not exist")
+			return err
+		}
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
