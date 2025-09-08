@@ -1,6 +1,7 @@
 package config
 
 import (
+	"encoding/json"
 	"flag"
 	"os"
 	"sync"
@@ -15,18 +16,15 @@ type Config struct {
 	DataBaseDSN string
 	DebugMode   bool
 	EnableHTTPS bool
+	ConfigPath  string
 }
 
 // config default values
 const (
 	// base server address
 	defaultServerAddr = ":8080"
-	// base https server address
-	defaultHTTPSServerAddr = ":8443"
 	// base address URL of shortened URLs
 	defaultBaseURL = "http://localhost:8080/"
-	// base address URL of shortened URLs
-	defaultHTTPSBaseURL = "https://localhost:8443/"
 	// default logging level
 	defaultLogLevel = "debug"
 	// file storage path name
@@ -43,80 +41,194 @@ var (
 	singleton *Config
 )
 
-// New creates a single instance of config
-func New() (*Config, error) {
-	once.Do(func() {
-		cfg := Config{}
+type Option func(*Config)
 
-		// init flags
-		flag.BoolVar(&cfg.EnableHTTPS, "s", defaultHTTPS, "enable https")
-		flag.StringVar(&cfg.ServerAddr, "a", "", "server address")
-		flag.StringVar(&cfg.BaseURL, "b", "", "base url")
-		flag.StringVar(&cfg.LogLevel, "l", "", "log level")
-		flag.StringVar(&cfg.StoragePath, "f", "", "storage path")
-		flag.StringVar(&cfg.DataBaseDSN, "d", "", "database address")
-		flag.BoolVar(&cfg.DebugMode, "debug", defaultDebugMode, "enable debug mode")
-
-		flag.Parse()
-
-		// sets https support
-		if httpsEnv := os.Getenv("ENABLE_HTTPS"); httpsEnv != "" {
-			cfg.EnableHTTPS = httpsEnv == "true"
+// WithServerAddr sets server address in Config
+func WithServerAddr(addr string) Option {
+	return func(c *Config) {
+		if addr != "" {
+			c.ServerAddr = addr
 		}
+	}
+}
+
+// WithBaseURL sets base url in Config
+func WithBaseURL(url string) Option {
+	return func(c *Config) {
+		if url != "" {
+			c.BaseURL = url
+		}
+	}
+}
+
+// WithLogLevel sets logging level
+func WithLogLevel(level string) Option {
+	return func(c *Config) {
+		if level != "" {
+			c.LogLevel = level
+		}
+	}
+}
+
+// WithStoragePath sets storage path
+func WithStoragePath(path string) Option {
+	return func(c *Config) {
+		if path != "" {
+			c.StoragePath = path
+		}
+	}
+}
+
+// WithDatabaseDSN sets data source name
+func WithDatabaseDSN(dsn string) Option {
+	return func(c *Config) {
+		if dsn != "" {
+			c.DataBaseDSN = dsn
+		}
+	}
+}
+
+// WithDebugMode sets debug mode
+func WithDebugMode(mode bool) Option {
+	return func(c *Config) {
+		c.DebugMode = mode
+	}
+}
+
+// WithEnableHTTPS sets enabling https
+func WithEnableHTTPS(enable bool) Option {
+	return func(c *Config) {
+		c.EnableHTTPS = enable
+	}
+}
+
+type configJSON struct {
+	ServerAddress   string `json:"server_address"`
+	BaseURL         string `json:"base_url"`
+	FileStoragePath string `json:"file_storage_path"`
+	DatabaseDSN     string `json:"database_dsn"`
+	EnableHTTPS     bool   `json:"enable_https"`
+}
+
+// FromFile loads config from file in JSON format
+func FromFile(name string) Option {
+	return func(c *Config) {
+		if name == "" {
+			return
+		}
+
+		b, err := os.ReadFile(name)
+		if err != nil {
+			return
+		}
+
+		cfg := configJSON{}
+
+		err = json.Unmarshal(b, &cfg)
+		if err != nil {
+			return
+		}
+
+		WithServerAddr(cfg.ServerAddress)(c)
+		WithBaseURL(cfg.BaseURL)(c)
+		WithStoragePath(cfg.FileStoragePath)(c)
+		WithDatabaseDSN(cfg.DatabaseDSN)(c)
+		WithEnableHTTPS(cfg.EnableHTTPS)(c)
+	}
+}
+
+// FromEnv gets configuration from environment variables
+func FromEnv() Option {
+	return func(c *Config) {
 
 		// sets base server address
 		if serverAddrEnv := os.Getenv("SERVER_ADDRESS"); serverAddrEnv != "" {
-			cfg.ServerAddr = serverAddrEnv
+			WithServerAddr(serverAddrEnv)(c)
 		}
-		if cfg.ServerAddr == "" {
-			// if https is enabled
-			if cfg.EnableHTTPS {
-				cfg.ServerAddr = defaultHTTPSServerAddr
-			} else {
-				cfg.ServerAddr = defaultServerAddr
-			}
-		}
-
 		// sets base address URL of shortened URLs
 		if baseURLEnv := os.Getenv("BASE_URL"); baseURLEnv != "" {
-			cfg.BaseURL = baseURLEnv
+			WithBaseURL(baseURLEnv)(c)
 		}
-		if cfg.BaseURL == "" {
-			if cfg.EnableHTTPS {
-				cfg.BaseURL = defaultHTTPSBaseURL
-			} else {
-				cfg.BaseURL = defaultBaseURL
-			}
-		}
-
 		// sets logging level
 		if logLevelEnv := os.Getenv("LOG_LEVEL"); logLevelEnv != "" {
-			cfg.LogLevel = logLevelEnv
+			WithLogLevel(logLevelEnv)(c)
 		}
-		if cfg.LogLevel == "" {
-			cfg.LogLevel = defaultLogLevel
-		}
-
 		// sets file storage path
 		if storagePathEnv := os.Getenv("FILE_STORAGE_PATH"); storagePathEnv != "" {
-			cfg.StoragePath = storagePathEnv
+			WithStoragePath(storagePathEnv)(c)
 		}
-		if cfg.StoragePath == "" {
-			cfg.StoragePath = defaultStoragePath
-		}
-
-		// sets database source namse
+		// sets database source name
 		if dataBaseDSNEnv := os.Getenv("DATABASE_DSN"); dataBaseDSNEnv != "" {
-			cfg.DataBaseDSN = dataBaseDSNEnv
+			WithDatabaseDSN(dataBaseDSNEnv)(c)
 		}
-
 		// sets debug mode
-		if debugModeEnv := os.Getenv("DEBUG_MODE"); debugModeEnv != "" {
-			cfg.DebugMode = debugModeEnv == "true"
+		if debugModeEnv := os.Getenv("DEBUG_MODE"); debugModeEnv == "true" {
+			WithDebugMode(true)(c)
 		}
+		// sets https support
+		if httpsEnv := os.Getenv("ENABLE_HTTPS"); httpsEnv == "true" {
+			WithEnableHTTPS(true)(c)
+		}
+	}
+}
 
-		singleton = &cfg
-	})
+// FromCommandLine gets configuration from command line
+func FromCommandLine(args *Config) Option {
+	return func(c *Config) {
+		WithServerAddr(args.ServerAddr)(c)
+		WithBaseURL(args.BaseURL)(c)
+		WithLogLevel(args.LogLevel)(c)
+		WithStoragePath(args.StoragePath)(c)
+		WithDatabaseDSN(args.DataBaseDSN)(c)
+		WithDebugMode(args.DebugMode)(c)
+		WithEnableHTTPS(args.EnableHTTPS)(c)
+	}
+}
 
-	return singleton, nil
+// parseCommandLine parses command line arguments
+func parseCommandLine(cfg *Config) {
+	flag.StringVar(&cfg.ServerAddr, "a", "", "server address")
+	flag.StringVar(&cfg.BaseURL, "b", "", "base url")
+	flag.StringVar(&cfg.LogLevel, "l", "", "log level")
+	flag.StringVar(&cfg.StoragePath, "f", "", "storage path")
+	flag.StringVar(&cfg.DataBaseDSN, "d", "", "database address")
+	flag.BoolVar(&cfg.DebugMode, "debug", false, "enable debug mode")
+	flag.BoolVar(&cfg.EnableHTTPS, "s", false, "enable https")
+	flag.StringVar(&cfg.ConfigPath, "config", "", "load config from file")
+	flag.StringVar(&cfg.ConfigPath, "c", "", "load config from file")
+
+	flag.Parse()
+}
+
+func New(opts ...Option) (*Config, error) {
+	// set defaults values
+	cfg := &Config{
+		ServerAddr:  defaultServerAddr,
+		BaseURL:     defaultBaseURL,
+		LogLevel:    defaultLogLevel,
+		StoragePath: defaultStoragePath,
+		DebugMode:   defaultDebugMode,
+		EnableHTTPS: defaultHTTPS,
+	}
+
+	for _, opt := range opts {
+		opt(cfg)
+	}
+
+	return cfg, nil
+}
+
+// Initialize initializes the configuration
+func Initialize() (*Config, error) {
+	args := &Config{}
+	// parse command line
+	parseCommandLine(args)
+	return New(
+		// low priority
+		FromFile(args.ConfigPath),
+		// medium priority
+		FromEnv(),
+		// height priority
+		FromCommandLine(args),
+	)
 }

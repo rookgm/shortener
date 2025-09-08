@@ -36,7 +36,7 @@ func main() {
 
 	printBuildInfo()
 
-	cfg, err := config.New()
+	cfg, err := config.Initialize()
 	if err != nil {
 		log.Fatalf("Cannot initialize config: %v\n", err)
 	}
