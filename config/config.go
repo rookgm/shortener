@@ -41,6 +41,7 @@ var (
 	singleton *Config
 )
 
+// Option is config func option
 type Option func(*Config)
 
 // WithServerAddr sets server address in Config
@@ -200,6 +201,7 @@ func parseCommandLine(cfg *Config) {
 	flag.Parse()
 }
 
+// New returns new Config. It parses command line, environment variables and file.
 func New(opts ...Option) (*Config, error) {
 	// set defaults values
 	cfg := &Config{
