@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"net/http/pprof"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -47,8 +49,8 @@ func Run(config *config.Config) error {
 		}
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
+	defer stop()
 
 	var sdb *db.DataBase
 	var st storage.URLStorage
@@ -105,6 +107,7 @@ func Run(config *config.Config) error {
 						}
 					}
 				}
+				logger.Log.Debug("delete worker is stopped")
 				return
 			case toDelete, ok := <-fanInCh:
 				if !ok {
@@ -155,9 +158,51 @@ func Run(config *config.Config) error {
 		}
 	})
 
-	if config.EnableHTTPS {
-		return http.ListenAndServeTLS(config.ServerAddr, serverCertFileName, serverKeyFileName, router)
+	// set server parameters
+	srv := http.Server{
+		Addr:    config.ServerAddr,
+		Handler: router,
 	}
 
-	return http.ListenAndServe(config.ServerAddr, router)
+	go func() {
+		// run server supporting https connections
+		if config.EnableHTTPS {
+			if err := http.ListenAndServeTLS(config.ServerAddr, serverCertFileName, serverKeyFileName, router); err != nil && !errors.Is(err, http.ErrServerClosed) {
+				logger.Log.Fatal("Error starting https server", zap.Error(err))
+			}
+		}
+		// run server with http
+		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			logger.Log.Fatal("Error starting http server", zap.Error(err))
+		}
+	}()
+
+	logger.Log.Info("Server is started successfully")
+	<-ctx.Done()
+
+	logger.Log.Info("Shutting down server...")
+
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	<-shutdownCtx.Done()
+
+	// shutdown server
+	if err := srv.Shutdown(shutdownCtx); err != nil {
+		logger.Log.Error("Error shutdown server", zap.Error(err))
+	}
+
+	// close storage
+
+	if sdb != nil {
+		// close db
+		if err := sdb.DB.Close(); err != nil {
+			logger.Log.Error("Error closing database", zap.Error(err))
+		}
+		sdb.Close()
+	}
+
+	logger.Log.Info("server is finished")
+
+	return nil
 }
