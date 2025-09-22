@@ -156,6 +156,13 @@ func Run(config *config.Config) error {
 			r.HandleFunc("/debug/pprof/*", pprof.Index)
 			r.Get("/debug/pprof/profile", pprof.Profile)
 		}
+
+		r.Route("/api/internal", func(r chi.Router) {
+			r.Use(func(next http.Handler) http.Handler {
+				return middleware.CheckTrustedSubNet(config.TrustedSubNet, next)
+			})
+			r.Get("/stats", handlers.StatsHandler(st))
+		})
 	})
 
 	// set server parameters

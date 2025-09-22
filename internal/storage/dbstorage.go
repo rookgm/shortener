@@ -175,3 +175,43 @@ func (d *DBStorage) DeleteUserURLsCtx(ctx context.Context, userID string, aliase
 
 	return nil
 }
+
+// GetUserCountCtx returns user count
+func (d *DBStorage) GetUserCountCtx(ctx context.Context) (int, error) {
+	stmt, err := d.db.DB.Prepare("SELECT COUNT(DISTINCT userid) FROM urls")
+	if err != nil {
+		return 0, err
+	}
+
+	var count int
+
+	err = stmt.QueryRowContext(ctx).Scan(&count)
+	switch {
+	case errors.Is(err, sql.ErrNoRows):
+		return 0, nil
+	case err != nil:
+		return 0, err
+	}
+
+	return count, nil
+}
+
+// GetURLCountCtx returns the number of shortened urls
+func (d *DBStorage) GetURLCountCtx(ctx context.Context) (int, error) {
+	stmt, err := d.db.DB.Prepare("SELECT COUNT(*) FROM urls WHERE deleted=false")
+	if err != nil {
+		return 0, err
+	}
+
+	var count int
+
+	err = stmt.QueryRowContext(ctx).Scan(&count)
+	switch {
+	case errors.Is(err, sql.ErrNoRows):
+		return 0, nil
+	case err != nil:
+		return 0, err
+	}
+
+	return count, nil
+}

@@ -186,3 +186,13 @@ func (fs *FileStorage) isURLExist(url string) bool {
 	}
 	return false
 }
+
+// GetUserCountCtx returns user count
+func (fs *FileStorage) GetUserCountCtx(ctx context.Context) (int, error) {
+	return len(fs.muser), nil
+}
+
+// GetURLCountCtx returns the number of shortened urls
+func (fs *FileStorage) GetURLCountCtx(ctx context.Context) (int, error) {
+	return len(fs.m), nil
+}
