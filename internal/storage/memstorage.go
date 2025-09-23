@@ -116,3 +116,13 @@ func (ms *MemStorage) isURLExist(url string) bool {
 	}
 	return false
 }
+
+// GetUserCountCtx returns user count
+func (ms *MemStorage) GetUserCountCtx(ctx context.Context) (int, error) {
+	return len(ms.muser), nil
+}
+
+// GetURLCountCtx returns the number of shortened urls
+func (ms *MemStorage) GetURLCountCtx(ctx context.Context) (int, error) {
+	return len(ms.m), nil
+}

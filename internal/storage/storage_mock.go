@@ -64,6 +64,21 @@ func (mr *MockURLStorageMockRecorder) GetAliasCtx(ctx, url interface{}) *gomock.
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAliasCtx", reflect.TypeOf((*MockURLStorage)(nil).GetAliasCtx), ctx, url)
 }
 
+// GetURLCountCtx mocks base method.
+func (m *MockURLStorage) GetURLCountCtx(ctx context.Context) (int, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetURLCountCtx", ctx)
+	ret0, _ := ret[0].(int)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetURLCountCtx indicates an expected call of GetURLCountCtx.
+func (mr *MockURLStorageMockRecorder) GetURLCountCtx(ctx interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetURLCountCtx", reflect.TypeOf((*MockURLStorage)(nil).GetURLCountCtx), ctx)
+}
+
 // GetURLCtx mocks base method.
 func (m *MockURLStorage) GetURLCtx(ctx context.Context, alias string) (models.ShrURL, error) {
 	m.ctrl.T.Helper()
@@ -77,6 +92,21 @@ func (m *MockURLStorage) GetURLCtx(ctx context.Context, alias string) (models.Sh
 func (mr *MockURLStorageMockRecorder) GetURLCtx(ctx, alias interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetURLCtx", reflect.TypeOf((*MockURLStorage)(nil).GetURLCtx), ctx, alias)
+}
+
+// GetUserCountCtx mocks base method.
+func (m *MockURLStorage) GetUserCountCtx(ctx context.Context) (int, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetUserCountCtx", ctx)
+	ret0, _ := ret[0].(int)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetUserCountCtx indicates an expected call of GetUserCountCtx.
+func (mr *MockURLStorageMockRecorder) GetUserCountCtx(ctx interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserCountCtx", reflect.TypeOf((*MockURLStorage)(nil).GetUserCountCtx), ctx)
 }
 
 // GetUserURLsCtx mocks base method.

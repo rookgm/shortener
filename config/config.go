@@ -4,19 +4,19 @@ import (
 	"encoding/json"
 	"flag"
 	"os"
-	"sync"
 )
 
 // Config contains configuration information.
 type Config struct {
-	ServerAddr  string
-	BaseURL     string
-	LogLevel    string
-	StoragePath string
-	DataBaseDSN string
-	DebugMode   bool
-	EnableHTTPS bool
-	ConfigPath  string
+	ServerAddr    string
+	BaseURL       string
+	LogLevel      string
+	StoragePath   string
+	DataBaseDSN   string
+	DebugMode     bool
+	EnableHTTPS   bool
+	ConfigPath    string
+	TrustedSubNet string
 }
 
 // config default values
@@ -33,12 +33,6 @@ const (
 	defaultDebugMode = false
 	// set https
 	defaultHTTPS = false
-)
-
-// singleton
-var (
-	once      sync.Once
-	singleton *Config
 )
 
 // Option is config func option
@@ -103,12 +97,22 @@ func WithEnableHTTPS(enable bool) Option {
 	}
 }
 
+// WithTrustedSubNet sets trusted subnet
+func WithTrustedSubNet(s string) Option {
+	return func(c *Config) {
+		if s != "" {
+			c.TrustedSubNet = s
+		}
+	}
+}
+
 type configJSON struct {
 	ServerAddress   string `json:"server_address"`
 	BaseURL         string `json:"base_url"`
 	FileStoragePath string `json:"file_storage_path"`
 	DatabaseDSN     string `json:"database_dsn"`
 	EnableHTTPS     bool   `json:"enable_https"`
+	TrustedSubNet   string `json:"trusted_subnet"`
 }
 
 // FromFile loads config from file in JSON format
@@ -135,6 +139,7 @@ func FromFile(name string) Option {
 		WithStoragePath(cfg.FileStoragePath)(c)
 		WithDatabaseDSN(cfg.DatabaseDSN)(c)
 		WithEnableHTTPS(cfg.EnableHTTPS)(c)
+		WithTrustedSubNet(cfg.TrustedSubNet)(c)
 	}
 }
 
@@ -170,6 +175,10 @@ func FromEnv() Option {
 		if httpsEnv := os.Getenv("ENABLE_HTTPS"); httpsEnv == "true" {
 			WithEnableHTTPS(true)(c)
 		}
+		// sets trusted subnet
+		if subNetEnv := os.Getenv("TRUSTED_SUBNET"); subNetEnv != "" {
+			WithTrustedSubNet(subNetEnv)
+		}
 	}
 }
 
@@ -183,6 +192,7 @@ func FromCommandLine(args *Config) Option {
 		WithDatabaseDSN(args.DataBaseDSN)(c)
 		WithDebugMode(args.DebugMode)(c)
 		WithEnableHTTPS(args.EnableHTTPS)(c)
+		WithTrustedSubNet(args.TrustedSubNet)(c)
 	}
 }
 
@@ -197,6 +207,7 @@ func parseCommandLine(cfg *Config) {
 	flag.BoolVar(&cfg.EnableHTTPS, "s", false, "enable https")
 	flag.StringVar(&cfg.ConfigPath, "config", "", "load config from file")
 	flag.StringVar(&cfg.ConfigPath, "c", "", "load config from file")
+	flag.StringVar(&cfg.TrustedSubNet, "t", "", "trusted subnet")
 
 	flag.Parse()
 }
