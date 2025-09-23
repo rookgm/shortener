@@ -15,8 +15,6 @@ type StatsResponse struct {
 }
 
 // StatsHandler returns the number of shortened urls and users in the service.
-// If the client's IP address is not in the trusted subnet,
-// return the 403 Forbidden response status.
 //
 // Request
 // GET /api/internal/stats HTTP/1.1
