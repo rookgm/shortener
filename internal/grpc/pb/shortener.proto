@@ -1,0 +1,114 @@
+syntax = "proto3";
+
+package shortener;
+
+option go_package = "github.com/rookgm/shortener/tree/main/internal/grpc/pb/";
+
+// ShortenURLRequest is request with URL
+message ShortenURLRequest {
+  string url = 1;
+}
+
+// ShortenURLResponse is response with shortened URL
+message ShortenURLResponse {
+  string short_url = 1;
+}
+
+// ShortenURLJSONRequest is request with URL in json format
+message ShortenURLJSONRequest {
+  string url = 1;
+}
+
+// ShortenURLJSONResponse is response with shortened URL in json format
+message ShortenURLJSONResponse {
+  string short_url = 1;
+}
+
+// GetOriginalURLRequest is request with shortened URL
+message GetOriginalURLRequest {
+  string short_url = 1;
+}
+
+// GetOriginalURLResponse is response with original URL
+message GetOriginalURLResponse {
+  string original_url = 1;
+}
+
+// BatchURL is item for batch processing
+message BatchURLItem {
+  string correlation_id = 1;
+  string url = 2;
+}
+
+// BatchURLRequest request contains urls for batch processing
+message BatchURLRequest {
+  repeated BatchURLItem orig_urls = 1;
+}
+
+// BatchURLResponse response contains shortened urls as result batch processing
+message BatchURLResponse {
+  repeated BatchURLItem short_urls = 1;
+}
+
+// UserURLItem represents user's url(short and original)
+message UserURLItem {
+  string short_url = 1;
+  string original_url = 2;
+}
+
+// GetUserURLRequest is empty request
+message GetUserURLRequest {
+}
+
+// GetUserURLResponse is response with user's url
+message GetUserURLResponse {
+  repeated UserURLItem urls = 1;
+}
+
+// DeleteUserURLRequest is request with id's of shortened url
+message DeleteUserURLRequest {
+  repeated string short_urls = 1;
+}
+
+// DeleteUserURLResponse is empty response
+message DeleteUserURLResponse {
+}
+
+// StatsRequest is empty request
+message StatsRequest {
+}
+
+// StatsResponse is response contains all shortened urls and users in the service
+message StatsResponse {
+  int32 urls = 1;
+  int32 users = 2;
+}
+
+// PingRequest is ping request
+message PingRequest {
+}
+
+// PingResponse is response with the result of checking the connection to the database
+message PingResponse {
+  bool ok = 1;
+}
+
+// Shortener is url shortener service
+service Shortener {
+  // ShortenURL accepts URL and returns shortened URL
+  rpc ShortenURL(ShortenURLRequest) returns (ShortenURLResponse);
+  // ShortenURLJSON accepts URL and returns shortened URL in json format
+  rpc ShortenURLJSON(ShortenURLJSONRequest) returns (ShortenURLJSONResponse);
+  // GetOriginalURL gets original URL by shortened URL
+  rpc GetOriginalURL(GetOriginalURLRequest) returns (GetOriginalURLResponse);
+  // BatchURL processes of original URLs and returns shortened URLs
+  rpc BatchURL(BatchURLRequest) returns (BatchURLResponse);
+  // GetUserURL returns user's urls
+  rpc GetUserURL(GetUserURLRequest) returns (GetUserURLResponse);
+  // DeleteUserURL deletes user's urls
+  rpc DeleteUserURL(DeleteUserURLRequest) returns (DeleteUserURLResponse);
+  // Stats returns the number of shortened urls and users in the service
+  rpc Stats(StatsRequest) returns (StatsResponse);
+  // Ping verifies a connection to the database
+  rpc Ping(PingRequest) returns (PingResponse);
+}
