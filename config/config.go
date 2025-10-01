@@ -17,6 +17,8 @@ type Config struct {
 	EnableHTTPS   bool
 	ConfigPath    string
 	TrustedSubNet string
+	EnableGRPC    bool
+	GRPCSeverAddr string
 }
 
 // config default values
@@ -33,6 +35,10 @@ const (
 	defaultDebugMode = false
 	// set https
 	defaultHTTPS = false
+	// grpc servers is disabled
+	defaultGRPS = false
+	// grpc server address
+	defaultGRPCServerAddr = ":3200"
 )
 
 // Option is config func option
@@ -106,6 +112,23 @@ func WithTrustedSubNet(s string) Option {
 	}
 }
 
+// WithEnableGRPC sets enabling grpc
+func WithEnableGRPC(enable bool) Option {
+	return func(c *Config) {
+		c.EnableGRPC = enable
+	}
+}
+
+// WithGRPCServerAddr sets grpc server address in Config
+func WithGRPCServerAddr(addr string) Option {
+	return func(c *Config) {
+		if addr != "" {
+			c.GRPCSeverAddr = addr
+		}
+	}
+}
+
+// configJSON is config in json format
 type configJSON struct {
 	ServerAddress   string `json:"server_address"`
 	BaseURL         string `json:"base_url"`
@@ -113,6 +136,8 @@ type configJSON struct {
 	DatabaseDSN     string `json:"database_dsn"`
 	EnableHTTPS     bool   `json:"enable_https"`
 	TrustedSubNet   string `json:"trusted_subnet"`
+	EnableGRPC      bool   `json:"enable_grpc"`
+	GRPCServerAddr  string `json:"grpc_server_addr"`
 }
 
 // FromFile loads config from file in JSON format
@@ -140,6 +165,8 @@ func FromFile(name string) Option {
 		WithDatabaseDSN(cfg.DatabaseDSN)(c)
 		WithEnableHTTPS(cfg.EnableHTTPS)(c)
 		WithTrustedSubNet(cfg.TrustedSubNet)(c)
+		WithEnableGRPC(cfg.EnableGRPC)(c)
+		WithGRPCServerAddr(cfg.GRPCServerAddr)(c)
 	}
 }
 
@@ -177,7 +204,15 @@ func FromEnv() Option {
 		}
 		// sets trusted subnet
 		if subNetEnv := os.Getenv("TRUSTED_SUBNET"); subNetEnv != "" {
-			WithTrustedSubNet(subNetEnv)
+			WithTrustedSubNet(subNetEnv)(c)
+		}
+		// sets grpc support
+		if grpcEnv := os.Getenv("ENABLE_GRPC"); grpcEnv == "true" {
+			WithEnableGRPC(true)(c)
+		}
+		// sets grpc server address
+		if grpcAddrEnv := os.Getenv("GRPC_SERVER_ADDRESS"); grpcAddrEnv != "" {
+			WithGRPCServerAddr(grpcAddrEnv)(c)
 		}
 	}
 }
@@ -193,6 +228,8 @@ func FromCommandLine(args *Config) Option {
 		WithDebugMode(args.DebugMode)(c)
 		WithEnableHTTPS(args.EnableHTTPS)(c)
 		WithTrustedSubNet(args.TrustedSubNet)(c)
+		WithEnableGRPC(args.EnableGRPC)(c)
+		WithGRPCServerAddr(args.GRPCSeverAddr)(c)
 	}
 }
 
@@ -208,6 +245,8 @@ func parseCommandLine(cfg *Config) {
 	flag.StringVar(&cfg.ConfigPath, "config", "", "load config from file")
 	flag.StringVar(&cfg.ConfigPath, "c", "", "load config from file")
 	flag.StringVar(&cfg.TrustedSubNet, "t", "", "trusted subnet")
+	flag.BoolVar(&cfg.EnableGRPC, "g", false, "enable grpc server")
+	flag.StringVar(&cfg.GRPCSeverAddr, "p", "", "grpc server address")
 
 	flag.Parse()
 }
@@ -216,12 +255,14 @@ func parseCommandLine(cfg *Config) {
 func New(opts ...Option) (*Config, error) {
 	// set defaults values
 	cfg := &Config{
-		ServerAddr:  defaultServerAddr,
-		BaseURL:     defaultBaseURL,
-		LogLevel:    defaultLogLevel,
-		StoragePath: defaultStoragePath,
-		DebugMode:   defaultDebugMode,
-		EnableHTTPS: defaultHTTPS,
+		ServerAddr:    defaultServerAddr,
+		BaseURL:       defaultBaseURL,
+		LogLevel:      defaultLogLevel,
+		StoragePath:   defaultStoragePath,
+		DebugMode:     defaultDebugMode,
+		EnableHTTPS:   defaultHTTPS,
+		EnableGRPC:    defaultGRPS,
+		GRPCSeverAddr: defaultGRPCServerAddr,
 	}
 
 	for _, opt := range opts {
