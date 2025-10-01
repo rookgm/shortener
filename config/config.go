@@ -4,19 +4,21 @@ import (
 	"encoding/json"
 	"flag"
 	"os"
-	"sync"
 )
 
 // Config contains configuration information.
 type Config struct {
-	ServerAddr  string
-	BaseURL     string
-	LogLevel    string
-	StoragePath string
-	DataBaseDSN string
-	DebugMode   bool
-	EnableHTTPS bool
-	ConfigPath  string
+	ServerAddr    string
+	BaseURL       string
+	LogLevel      string
+	StoragePath   string
+	DataBaseDSN   string
+	DebugMode     bool
+	EnableHTTPS   bool
+	ConfigPath    string
+	TrustedSubNet string
+	EnableGRPC    bool
+	GRPCSeverAddr string
 }
 
 // config default values
@@ -33,12 +35,10 @@ const (
 	defaultDebugMode = false
 	// set https
 	defaultHTTPS = false
-)
-
-// singleton
-var (
-	once      sync.Once
-	singleton *Config
+	// grpc servers is disabled
+	defaultGRPS = false
+	// grpc server address
+	defaultGRPCServerAddr = ":3200"
 )
 
 // Option is config func option
@@ -103,12 +103,41 @@ func WithEnableHTTPS(enable bool) Option {
 	}
 }
 
+// WithTrustedSubNet sets trusted subnet
+func WithTrustedSubNet(s string) Option {
+	return func(c *Config) {
+		if s != "" {
+			c.TrustedSubNet = s
+		}
+	}
+}
+
+// WithEnableGRPC sets enabling grpc
+func WithEnableGRPC(enable bool) Option {
+	return func(c *Config) {
+		c.EnableGRPC = enable
+	}
+}
+
+// WithGRPCServerAddr sets grpc server address in Config
+func WithGRPCServerAddr(addr string) Option {
+	return func(c *Config) {
+		if addr != "" {
+			c.GRPCSeverAddr = addr
+		}
+	}
+}
+
+// configJSON is config in json format
 type configJSON struct {
 	ServerAddress   string `json:"server_address"`
 	BaseURL         string `json:"base_url"`
 	FileStoragePath string `json:"file_storage_path"`
 	DatabaseDSN     string `json:"database_dsn"`
 	EnableHTTPS     bool   `json:"enable_https"`
+	TrustedSubNet   string `json:"trusted_subnet"`
+	EnableGRPC      bool   `json:"enable_grpc"`
+	GRPCServerAddr  string `json:"grpc_server_addr"`
 }
 
 // FromFile loads config from file in JSON format
@@ -135,6 +164,9 @@ func FromFile(name string) Option {
 		WithStoragePath(cfg.FileStoragePath)(c)
 		WithDatabaseDSN(cfg.DatabaseDSN)(c)
 		WithEnableHTTPS(cfg.EnableHTTPS)(c)
+		WithTrustedSubNet(cfg.TrustedSubNet)(c)
+		WithEnableGRPC(cfg.EnableGRPC)(c)
+		WithGRPCServerAddr(cfg.GRPCServerAddr)(c)
 	}
 }
 
@@ -170,6 +202,18 @@ func FromEnv() Option {
 		if httpsEnv := os.Getenv("ENABLE_HTTPS"); httpsEnv == "true" {
 			WithEnableHTTPS(true)(c)
 		}
+		// sets trusted subnet
+		if subNetEnv := os.Getenv("TRUSTED_SUBNET"); subNetEnv != "" {
+			WithTrustedSubNet(subNetEnv)(c)
+		}
+		// sets grpc support
+		if grpcEnv := os.Getenv("ENABLE_GRPC"); grpcEnv == "true" {
+			WithEnableGRPC(true)(c)
+		}
+		// sets grpc server address
+		if grpcAddrEnv := os.Getenv("GRPC_SERVER_ADDRESS"); grpcAddrEnv != "" {
+			WithGRPCServerAddr(grpcAddrEnv)(c)
+		}
 	}
 }
 
@@ -183,6 +227,9 @@ func FromCommandLine(args *Config) Option {
 		WithDatabaseDSN(args.DataBaseDSN)(c)
 		WithDebugMode(args.DebugMode)(c)
 		WithEnableHTTPS(args.EnableHTTPS)(c)
+		WithTrustedSubNet(args.TrustedSubNet)(c)
+		WithEnableGRPC(args.EnableGRPC)(c)
+		WithGRPCServerAddr(args.GRPCSeverAddr)(c)
 	}
 }
 
@@ -197,6 +244,9 @@ func parseCommandLine(cfg *Config) {
 	flag.BoolVar(&cfg.EnableHTTPS, "s", false, "enable https")
 	flag.StringVar(&cfg.ConfigPath, "config", "", "load config from file")
 	flag.StringVar(&cfg.ConfigPath, "c", "", "load config from file")
+	flag.StringVar(&cfg.TrustedSubNet, "t", "", "trusted subnet")
+	flag.BoolVar(&cfg.EnableGRPC, "g", false, "enable grpc server")
+	flag.StringVar(&cfg.GRPCSeverAddr, "p", "", "grpc server address")
 
 	flag.Parse()
 }
@@ -205,12 +255,14 @@ func parseCommandLine(cfg *Config) {
 func New(opts ...Option) (*Config, error) {
 	// set defaults values
 	cfg := &Config{
-		ServerAddr:  defaultServerAddr,
-		BaseURL:     defaultBaseURL,
-		LogLevel:    defaultLogLevel,
-		StoragePath: defaultStoragePath,
-		DebugMode:   defaultDebugMode,
-		EnableHTTPS: defaultHTTPS,
+		ServerAddr:    defaultServerAddr,
+		BaseURL:       defaultBaseURL,
+		LogLevel:      defaultLogLevel,
+		StoragePath:   defaultStoragePath,
+		DebugMode:     defaultDebugMode,
+		EnableHTTPS:   defaultHTTPS,
+		EnableGRPC:    defaultGRPS,
+		GRPCSeverAddr: defaultGRPCServerAddr,
 	}
 
 	for _, opt := range opts {

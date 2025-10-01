@@ -137,7 +137,7 @@ type APIShortenResp struct {
 //
 // Response
 //
-//	HTTP/1.1 201 OK
+//	HTTP/1.1 200 OK
 //	Content-Type: application/json
 //	Content-Length: 30
 //
