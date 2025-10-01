@@ -210,7 +210,10 @@ func Run(config *config.Config) error {
 			logger.Log.Fatal("Error listen on", zap.String("address", config.GRPCSeverAddr), zap.Error(err))
 		}
 		// create grpc server
-		grpcServer = grpc.NewServer()
+		grpcServer = grpc.NewServer(grpc.ChainUnaryInterceptor(
+			grpcserver.LogInterceptor(logger.Log),
+			grpcserver.AuthInterceptor(token),
+		))
 		shServer := grpcserver.NewShortenerServer(st, config.BaseURL, fanInCh, config.TrustedSubNet)
 		// register shortener server
 		pb.RegisterShortenerServer(grpcServer, shServer)
