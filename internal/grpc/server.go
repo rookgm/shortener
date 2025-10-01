@@ -42,6 +42,7 @@ func NewShortenerServer(storage storage.URLStorage, baseURL string, urlsToDelete
 	}
 }
 
+// getUserIDFromContext user id from context metadata
 func (ss *ShortenerServer) getUserIDFromContext(ctx context.Context) (string, error) {
 	// get metadata from context
 	md, ok := metadata.FromIncomingContext(ctx)
@@ -49,7 +50,7 @@ func (ss *ShortenerServer) getUserIDFromContext(ctx context.Context) (string, er
 		return "", status.Error(codes.InvalidArgument, "can not get metadata")
 	}
 	// extract user id
-	userIDs := md.Get("user_id")
+	userIDs := md.Get("auth_token")
 	if len(userIDs) == 0 {
 		return "", status.Error(codes.Unauthenticated, "userid is not found in metadata")
 	}
@@ -57,8 +58,8 @@ func (ss *ShortenerServer) getUserIDFromContext(ctx context.Context) (string, er
 	return userIDs[0], nil
 }
 
-// getClientIP extracts client ip from metadata
-func (ss *ShortenerServer) getClientIP(ctx context.Context) (net.IP, error) {
+// getClientIPFromContext extracts client ip from context metadata
+func (ss *ShortenerServer) getClientIPFromContext(ctx context.Context) (net.IP, error) {
 	// get client ip
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
@@ -278,7 +279,7 @@ func (ss *ShortenerServer) Stats(ctx context.Context, req *pb.StatsRequest) (*pb
 		return nil, status.Error(codes.PermissionDenied, "permission denied")
 	}
 	// try to get client ip from context metadata
-	clientIP, err := ss.getClientIP(ctx)
+	clientIP, err := ss.getClientIPFromContext(ctx)
 	if err != nil {
 		return nil, status.Error(codes.PermissionDenied, "permission denied")
 	}
