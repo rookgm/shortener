@@ -88,6 +88,10 @@ func (ss *ShortenerServer) ShortenURL(ctx context.Context, req *pb.ShortenURLReq
 		return nil, status.Error(codes.Unauthenticated, "userid is missing")
 	}
 
+	if len(req.Url) == 0 {
+		return nil, status.Error(codes.InvalidArgument, "invalid argument")
+	}
+
 	// generate shorten url
 	iurl := models.ShrURL{
 		Alias:  random.RandString(6),
@@ -203,7 +207,6 @@ func (ss *ShortenerServer) BatchURL(ctx context.Context, req *pb.BatchURLRequest
 		// make full path
 		surl, err := url.JoinPath(ss.baseURL, rurl.Alias)
 		if err != nil {
-			return nil, status.Error(codes.Internal, "internal error")
 			continue
 		}
 
@@ -235,7 +238,7 @@ func (ss *ShortenerServer) GetUserURL(ctx context.Context, req *pb.GetUserURLReq
 		return nil, status.Error(codes.NotFound, "can't get user urls")
 	}
 	// output user urls
-	userURLResp := make([]*pb.UserURLItem, 0)
+	userURLResp := make([]*pb.UserURLItem, numUserUrls)
 	// prepare user urls
 	for i, uurl := range uurls {
 		urlPath, err := url.JoinPath(ss.baseURL, uurl.Alias)
