@@ -36,7 +36,7 @@ func createTestServer(t *testing.T) (pb.ShortenerClient, func()) {
 
 	go func() {
 		if err := server.Serve(listen); err != nil {
-			t.Fatal("error starting server")
+			t.Errorf("error starting server")
 		}
 	}()
 
