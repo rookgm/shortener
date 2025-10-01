@@ -215,3 +215,8 @@ func (d *DBStorage) GetURLCountCtx(ctx context.Context) (int, error) {
 
 	return count, nil
 }
+
+// Ping verifies a connection to the database
+func (d *DBStorage) Ping(ctx context.Context) error {
+	return d.db.PingCtx(ctx)
+}
