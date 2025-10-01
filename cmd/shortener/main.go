@@ -42,9 +42,7 @@ func main() {
 	if err := logger.Initialize(cfg.LogLevel); err != nil {
 		log.Fatalf("Cannot initialize logger: %v\n", err)
 	}
-
-	logger.Log.Info("Running server", zap.String("addr", cfg.ServerAddr))
 	if err := server.Run(cfg); err != nil {
-		logger.Log.Fatal("Cannot start server", zap.Error(err))
+		logger.Log.Fatal("Cannot run server", zap.Error(err))
 	}
 }

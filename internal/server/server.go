@@ -4,10 +4,15 @@ import (
 	"context"
 	"encoding/hex"
 	"errors"
+	grpcserver "github.com/rookgm/shortener/internal/grpc"
+	"github.com/rookgm/shortener/internal/grpc/pb"
+	"google.golang.org/grpc"
+	"net"
 	"net/http"
 	"net/http/pprof"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 
@@ -165,42 +170,86 @@ func Run(config *config.Config) error {
 		})
 	})
 
+	// wait group for http and grpc servers
+	var wg sync.WaitGroup
+	srvErrCh := make(chan error, 2)
+
 	// set server parameters
 	srv := http.Server{
 		Addr:    config.ServerAddr,
 		Handler: router,
 	}
 
+	wg.Add(1)
 	go func() {
+		defer wg.Done()
 		// run server supporting https connections
 		if config.EnableHTTPS {
+			logger.Log.Info("Starting HTTPs server", zap.String("address", config.ServerAddr))
 			if err := http.ListenAndServeTLS(config.ServerAddr, serverCertFileName, serverKeyFileName, router); err != nil && !errors.Is(err, http.ErrServerClosed) {
 				logger.Log.Fatal("Error starting https server", zap.Error(err))
+				srvErrCh <- err
 			}
 		}
 		// run server with http
+		logger.Log.Info("Starting HTTP server", zap.String("address", config.ServerAddr))
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			logger.Log.Fatal("Error starting http server", zap.Error(err))
+			srvErrCh <- err
 		}
 	}()
 
-	logger.Log.Info("Server is started successfully")
-	<-ctx.Done()
+	var grpcListen net.Listener
+	var grpcServer *grpc.Server
 
-	logger.Log.Info("Shutting down server...")
+	// if grpc server is enabled
+	if config.EnableGRPC {
+		// prepare grpc server
+		grpcListen, err = net.Listen("tcp", config.GRPCSeverAddr)
+		if err != nil {
+			logger.Log.Fatal("Error listen on", zap.String("address", config.GRPCSeverAddr), zap.Error(err))
+		}
+		// create grpc server
+		grpcServer = grpc.NewServer()
+		shServer := grpcserver.NewShortenerServer(st, config.BaseURL, fanInCh, config.TrustedSubNet)
+		// register shortener server
+		pb.RegisterShortenerServer(grpcServer, shServer)
+
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			// run grpc server
+			logger.Log.Info("Starting gRPC server", zap.String("address", config.GRPCSeverAddr))
+			if err := grpcServer.Serve(grpcListen); err != nil {
+				logger.Log.Fatal("Error starting grpc server", zap.Error(err))
+			}
+		}()
+	}
+
+	select {
+	case <-ctx.Done():
+		logger.Log.Info("server is done")
+	case err := <-srvErrCh:
+		return err
+	}
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	<-shutdownCtx.Done()
 
-	// shutdown server
+	// shutdown http server
+	logger.Log.Info("Shutting http server")
 	if err := srv.Shutdown(shutdownCtx); err != nil {
 		logger.Log.Error("Error shutdown server", zap.Error(err))
 	}
+	// shutdown grpc server
+	logger.Log.Info("Shutting down grpc server")
+	if config.EnableGRPC && grpcServer != nil {
+		grpcServer.GracefulStop()
+	}
 
 	// close storage
-
 	if sdb != nil {
 		// close db
 		if err := sdb.DB.Close(); err != nil {
